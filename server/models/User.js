@@ -5,6 +5,7 @@ const UserSchema = new mongoose.Schema({
   password: { type: String, required: true },
   faceData: { type: String },  // base64 or embedding
   voiceData: { type: String }, // base64 or embedding
+  faceDescriptor: { type: [Number], default: [] }
 });
 
 module.exports = mongoose.model('User', UserSchema);

@@ -1,5 +1,5 @@
 import React from 'react';
-import VoiceRecorder from './components/VoiceRecorder';
+import Login2FA from './components/Login2FA';
 
 function App() {
   return (
@@ -7,8 +7,7 @@ function App() {
       <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '1rem' }}>
         Welcome to ArtConnect
       </h1>
-      <p>This app uses voice recognition as part of 2FA.</p>
-      <VoiceRecorder />
+      <Login2FA />
     </div>
   );
 }
