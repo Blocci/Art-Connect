@@ -5,47 +5,59 @@ const jwt = require('jsonwebtoken');
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
-const crypto = require("crypto");
+
 const User = require('../models/User');
 const verifyToken = require("../middleware/verifyToken");
+const { getVoiceDescriptorFromFile, cosineSimilarity } = require("../utils/voiceDescriptor");
+
+// Ensure 'uploads' folder exists
+const uploadDir = path.join(__dirname, '..', 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir);
+}
 
 // Multer setup for voice uploads
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/"); // Ensure folder exists
-  },
-  filename: (req, file, cb) => {
-    cb(null, `voice-${Date.now()}${path.extname(file.originalname)}`);
-  },
+  destination: (req, file, cb) => cb(null, "uploads/"),
+  filename: (req, file, cb) => cb(null, `voice-${Date.now()}${path.extname(file.originalname)}`)
 });
-const upload = multer({ storage });
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // Max 10MB
+});
 
-// --- Registration ---
+
+// --- Register ---
 router.post('/register', async (req, res) => {
   try {
     const { username, password } = req.body;
-    if (await User.findOne({ username })) {
+    if (!username || !password)
+      return res.status(400).json({ error: 'Missing username or password' });
+
+    if (await User.findOne({ username }))
       return res.status(400).json({ error: 'User already exists' });
-    }
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-    const newUser = new User({ username, password: hashedPassword });
-    await newUser.save();
-    res.status(201).json({ message: 'User registered successfully' });
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = new User({ username, password: hashedPassword });
+    await user.save();
+
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    res.status(201).json({ message: 'User registered', token });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error' });
+    console.error('Registration error:', err);
+    res.status(500).json({ error: 'Server error during registration' });
   }
 });
+
 
 // --- Login ---
 router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     const user = await User.findOne({ username });
-    if (!user) return res.status(400).json({ error: 'Invalid credentials' });
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ error: 'Invalid credentials' });
+    if (!user || !(await bcrypt.compare(password, user.password)))
+      return res.status(400).json({ error: 'Invalid credentials' });
+
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
     res.json({ token, message: 'Login successful' });
   } catch (err) {
@@ -54,16 +66,17 @@ router.post('/login', async (req, res) => {
   }
 });
 
+
 // --- Face Enrollment ---
 router.post("/enroll-face", verifyToken, async (req, res) => {
   try {
-    const userId = req.user.id;
     const { descriptor } = req.body;
-    if (!descriptor || !Array.isArray(descriptor)) {
+    if (!descriptor || !Array.isArray(descriptor))
       return res.status(400).json({ error: "Descriptor missing or invalid" });
-    }
-    const user = await User.findById(userId);
+
+    const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ error: "User not found" });
+
     user.faceDescriptor = descriptor;
     await user.save();
     res.status(200).json({ message: "Face enrolled successfully" });
@@ -73,26 +86,27 @@ router.post("/enroll-face", verifyToken, async (req, res) => {
   }
 });
 
-// Helper: Euclidean distance for face verification
+
+// --- Face Verification ---
 function euclideanDistance(desc1, desc2) {
   if (!desc1 || !desc2 || desc1.length !== desc2.length) return Infinity;
   return Math.sqrt(desc1.reduce((sum, val, i) => sum + Math.pow(val - desc2[i], 2), 0));
 }
 
-// --- Face Verification ---
 router.post('/verify-face', verifyToken, async (req, res) => {
   try {
-    const { faceDescriptor } = req.body;
-    if (!faceDescriptor || !Array.isArray(faceDescriptor)) {
+    const { descriptor } = req.body;
+    if (!descriptor || !Array.isArray(descriptor))
       return res.status(400).json({ message: 'Invalid or missing face descriptor' });
-    }
+
     const user = await User.findById(req.user.id);
-    if (!user || !user.faceDescriptor || user.faceDescriptor.length === 0) {
+    if (!user?.faceDescriptor?.length)
       return res.status(404).json({ message: 'User face data not found' });
-    }
-    const distance = euclideanDistance(faceDescriptor, user.faceDescriptor);
-    const threshold = 0.6; // Adjust for strictness
+
+    const distance = euclideanDistance(descriptor, user.faceDescriptor);
+    const threshold = 0.6;
     const match = distance < threshold;
+
     res.json({ match, distance });
   } catch (err) {
     console.error('Face verification error:', err);
@@ -100,45 +114,64 @@ router.post('/verify-face', verifyToken, async (req, res) => {
   }
 });
 
-// --- Voice Upload & Save Hash ---
-router.post("/upload-voice", verifyToken, upload.single("audio"), async (req, res) => {
-  if (!req.file) return res.status(400).json({ message: "No file uploaded" });
 
+// --- Voice Enrollment ---
+router.post("/enroll-voice", verifyToken, upload.single("audio"), async (req, res) => {
   try {
-    const buffer = fs.readFileSync(req.file.path);
-    const hash = crypto.createHash("sha256").update(buffer).digest("hex");
-    await User.findByIdAndUpdate(req.user.id, { voiceData: hash });
-    res.status(200).json({ message: "Voice uploaded and hash saved", filePath: req.file.path, hash });
+    if (!req.file) return res.status(400).json({ message: "No voice file uploaded" });
+
+    const descriptor = await getVoiceDescriptorFromFile(req.file.path);
+    fs.unlinkSync(req.file.path);
+
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    user.voiceDescriptor = descriptor;
+    await user.save();
+
+    res.status(200).json({ message: "✅ Voice enrolled successfully" });
   } catch (err) {
-    console.error("Error saving voice hash:", err);
-    res.status(500).json({ error: "Failed to save voice data" });
+    console.error("❌ Voice enrollment error:", err);
+    res.status(500).json({ message: "Server error during voice enrollment" });
   }
 });
+
 
 // --- Voice Verification ---
 router.post("/verify-voice", verifyToken, upload.single("audio"), async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ message: "No audio file uploaded" });
+    if (!req.file) return res.status(400).json({ message: "No voice file uploaded" });
+
+    const uploadedDescriptor = await getVoiceDescriptorFromFile(req.file.path);
+    fs.unlinkSync(req.file.path);
+
     const user = await User.findById(req.user.id);
-    if (!user || !user.voiceData) return res.status(400).json({ message: "No saved voice data for user" });
+    if (!user || !user.voiceDescriptor?.length)
+      return res.status(400).json({ message: "No saved voice descriptor for user" });
 
-    const uploadedBuffer = fs.readFileSync(req.file.path);
-    const uploadedHash = crypto.createHash("sha256").update(uploadedBuffer).digest("hex");
+    const similarity = cosineSimilarity(uploadedDescriptor, user.voiceDescriptor);
+    const threshold = 0.75;
+    const match = similarity >= threshold;
 
-    if (uploadedHash === user.voiceData) {
-      return res.status(200).json({ success: true, message: "Voice verified successfully" });
-    } else {
-      return res.status(401).json({ success: false, message: "Voice verification failed" });
-    }
+    res.status(match ? 200 : 401).json({
+      success: match,
+      similarity,
+      message: match ? "Voice verified successfully" : "Voice verification failed"
+    });
   } catch (err) {
-    console.error("Voice verification error:", err);
+    console.error("❌ Voice verification error:", err);
     res.status(500).json({ message: "Server error during voice verification" });
   }
 });
 
-// Optional: test protected route
+
+// --- Misc Routes ---
+router.get("/ping", (req, res) => {
+  res.send("pong");
+});
+
 router.get("/protected", verifyToken, (req, res) => {
-  res.json({ message: "This is a protected route!", user: req.user });
+  res.json({ message: "You are authenticated", user: req.user });
 });
 
 module.exports = router;

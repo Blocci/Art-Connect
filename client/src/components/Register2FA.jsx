@@ -5,21 +5,21 @@ import VoiceRecorder from "./VoiceRecorder";
 
 const API_BASE = "https://localhost:3001";
 
-const Login2FA = () => {
+const Register2FA = () => {
   const [step, setStep] = useState(1);
   const [status, setStatus] = useState("");
-  const [token, setToken] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [token, setToken] = useState("");
 
-  const handleLogin = async () => {
+  const handleRegister = async () => {
     if (!username || !password) {
-      setStatus("Enter username and password.");
+      setStatus("Please enter a username and password.");
       return;
     }
 
     try {
-      const res = await axios.post(`${API_BASE}/api/login`, {
+      const res = await axios.post(`${API_BASE}/api/register`, {
         username,
         password,
       });
@@ -28,21 +28,17 @@ const Login2FA = () => {
       localStorage.setItem("token", receivedToken);
       setToken(receivedToken);
 
-      setStatus("✅ Login successful. Now scan your face...");
+      setStatus("✅ Registered. Now scan your face...");
       setStep(2);
     } catch (err) {
-      setStatus("❌ Login failed: " + (err.response?.data?.error || "Server error"));
+      console.error(err);
+      setStatus("❌ Registration failed.");
     }
-  };
-
-  const handleVoiceUpload = () => {
-    setStatus("✅ Voice verified. Login complete!");
-    setStep(4);
   };
 
   return (
     <div className="p-6 max-w-md mx-auto bg-white rounded shadow">
-      <h2 className="text-xl font-bold mb-4">Login with 2FA</h2>
+      <h2 className="text-xl font-bold mb-4">Register with Face + Voice</h2>
       <p className="mb-4 text-sm text-gray-600">{status}</p>
 
       {step === 1 && (
@@ -62,9 +58,9 @@ const Login2FA = () => {
           />
           <button
             className="bg-blue-600 text-white px-4 py-2 rounded"
-            onClick={handleLogin}
+            onClick={handleRegister}
           >
-            Login
+            Register
           </button>
         </div>
       )}
@@ -72,7 +68,7 @@ const Login2FA = () => {
       {step === 2 && token && (
         <FaceRecognition
           onUploadComplete={() => {
-            setStatus("✅ Face matched. Now record your voice...");
+            setStatus("✅ Face uploaded. Now record your voice...");
             setStep(3);
           }}
         />
@@ -81,18 +77,21 @@ const Login2FA = () => {
       {step === 3 && token && (
         <VoiceRecorder
           token={token}
-          mode="verify"
-          onUploadComplete={handleVoiceUpload}
+          mode="register"
+          onUploadComplete={() => {
+            setStatus("🎉 Voice uploaded. Registration complete!");
+            setStep(4);
+          }}
         />
       )}
 
       {step === 4 && (
         <div className="mt-4 text-green-600 font-semibold">
-          🎉 Logged in successfully!
+          ✅ Registration complete!
         </div>
       )}
     </div>
   );
 };
 
-export default Login2FA;
+export default Register2FA;
