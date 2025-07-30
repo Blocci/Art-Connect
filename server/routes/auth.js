@@ -114,6 +114,19 @@ router.post('/verify-face', verifyToken, async (req, res) => {
   }
 });
 
+router.get('/get-face', verifyToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user || !user.faceDescriptor?.length) {
+      return res.status(404).json({ error: 'Face data not found' });
+    }
+
+    res.status(200).json({ descriptor: user.faceDescriptor });
+  } catch (err) {
+    console.error("Error retrieving face descriptor:", err);
+    res.status(500).json({ error: "Server error retrieving face data" });
+  }
+});
 
 // --- Voice Enrollment ---
 router.post("/enroll-voice", verifyToken, upload.single("audio"), async (req, res) => {
@@ -161,6 +174,20 @@ router.post("/verify-voice", verifyToken, upload.single("audio"), async (req, re
   } catch (err) {
     console.error("❌ Voice verification error:", err);
     res.status(500).json({ message: "Server error during voice verification" });
+  }
+});
+
+router.get('/get-voice', verifyToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user || !user.voiceDescriptor?.length) {
+      return res.status(404).json({ error: 'Voice data not found' });
+    }
+
+    res.status(200).json({ descriptor: user.voiceDescriptor });
+  } catch (err) {
+    console.error("Error retrieving voice descriptor:", err);
+    res.status(500).json({ error: "Server error retrieving voice data" });
   }
 });
 
