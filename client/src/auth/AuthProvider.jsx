@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('token');
     setToken(null);
-    navigate('/login'); // Optional: auto redirect on logout
+    window.location.href = '/login'; // Optional: auto redirect on logout
   };
 
   return (
