@@ -71,47 +71,27 @@ router.post('/login', async (req, res) => {
 router.post("/enroll-face", verifyToken, async (req, res) => {
   try {
     const { descriptor } = req.body;
+
+    // ✅ Validation: descriptor must be an array with enough values (e.g. 128)
     if (!Array.isArray(descriptor) || descriptor.length < 10) {
+      console.log("❌ Invalid face descriptor received:", descriptor);
       return res.status(400).json({ error: "Descriptor is missing or invalid" });
     }
 
     const user = await User.findById(req.user.id);
-    if (!user) return res.status(404).json({ error: "User not found" });
+    if (!user) {
+      console.log("❌ User not found");
+      return res.status(404).json({ error: "User not found" });
+    }
 
     user.faceDescriptor = descriptor;
     await user.save();
+
+    console.log(`✅ Face descriptor saved for ${user.username}. Length: ${descriptor.length}`);
     res.status(200).json({ message: "Face enrolled successfully" });
   } catch (err) {
-    console.error(err);
+    console.error("🔥 Error during face enrollment:", err);
     res.status(500).json({ error: "Server error during face enrollment" });
-  }
-});
-
-
-// --- Face Verification ---
-function euclideanDistance(desc1, desc2) {
-  if (!desc1 || !desc2 || desc1.length !== desc2.length) return Infinity;
-  return Math.sqrt(desc1.reduce((sum, val, i) => sum + Math.pow(val - desc2[i], 2), 0));
-}
-
-router.post('/verify-face', verifyToken, async (req, res) => {
-  try {
-    const { descriptor } = req.body;
-    if (!descriptor || !Array.isArray(descriptor))
-      return res.status(400).json({ message: 'Invalid or missing face descriptor' });
-
-    const user = await User.findById(req.user.id);
-    if (!user?.faceDescriptor?.length)
-      return res.status(404).json({ message: 'User face data not found' });
-
-    const distance = euclideanDistance(descriptor, user.faceDescriptor);
-    const threshold = 0.6;
-    const match = distance < threshold;
-
-    res.json({ match, distance });
-  } catch (err) {
-    console.error('Face verification error:', err);
-    res.status(500).json({ message: 'Server error during face verification' });
   }
 });
 
