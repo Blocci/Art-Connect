@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ReactMediaRecorder } from "react-media-recorder";
 import Spinner from "./Spinner";
 
@@ -6,19 +6,29 @@ const VOICE_SERVICE_URL = "https://artconnect-voiceservice.onrender.com";
 const API_BASE = process.env.REACT_APP_API_BASE;
 const VOICE_MATCH_THRESHOLD = 0.75;
 
-const VoiceRecorder = ({ token, mode = "verify", onUploadComplete }) => {
+const VoiceRecorder = ({ mode = "verify", onUploadComplete }) => {
   const [blob, setBlob] = useState(null);
-  const [descriptor, setDescriptor] = useState(null);
-  const [descriptorReady, setDescriptorReady] = useState(false);
   const [statusMsg, setStatusMsg] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [descriptorReady, setDescriptorReady] = useState(false);
+  const [descriptor, setDescriptor] = useState(null);
+  const [token, setToken] = useState("");
+
+  useEffect(() => {
+    const storedToken = localStorage.getItem("token");
+    if (!storedToken) {
+      setStatusMsg("❌ No authentication token. Please log in.");
+    } else {
+      setToken(storedToken);
+    }
+  }, []);
 
   const descriptorEndpoint = `${VOICE_SERVICE_URL}/extract-voice-descriptor`;
 
   const handleStop = (recordedBlob) => {
     if (recordedBlob?.blob && recordedBlob.blob.size > 0) {
       setBlob(recordedBlob.blob);
-      setStatusMsg("✅ Recording captured. Extracting voice descriptor...");
+      setStatusMsg("✅ Recording captured. Validating...");
       setDescriptorReady(false);
       extractDescriptor(recordedBlob.blob);
     } else {
@@ -56,7 +66,7 @@ const VoiceRecorder = ({ token, mode = "verify", onUploadComplete }) => {
       setStatusMsg("✅ Voice ready. Click Upload.");
     } catch (err) {
       console.error("❌ Voice descriptor fetch error:", err);
-      setStatusMsg("❌ Network error during descriptor extraction.");
+      setStatusMsg("❌ Network error. Try again.");
       setDescriptorReady(false);
     }
   };
@@ -67,14 +77,13 @@ const VoiceRecorder = ({ token, mode = "verify", onUploadComplete }) => {
   };
 
   const uploadVoice = async () => {
-    if (!descriptorReady || !descriptor || descriptor.length < 10 || uploading) {
-      setStatusMsg("❌ Voice descriptor not ready. Record again.");
+    if (!token) {
+      setStatusMsg("❌ Session expired. Please log in again.");
       return;
     }
 
-    const finalToken = token || localStorage.getItem("token");
-    if (!finalToken) {
-      setStatusMsg("❌ Missing authentication token.");
+    if (!descriptorReady || !Array.isArray(descriptor) || descriptor.length < 10 || uploading) {
+      setStatusMsg("❌ Voice descriptor not ready. Record again.");
       return;
     }
 
@@ -87,15 +96,14 @@ const VoiceRecorder = ({ token, mode = "verify", onUploadComplete }) => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${finalToken}`,
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ descriptor }),
         });
 
         if (!saveRes.ok) {
           const msg = await saveRes.text();
-          console.error("❌ Failed to save descriptor:", msg);
-          setStatusMsg("❌ Upload failed: " + msg);
+          setStatusMsg("❌ Failed to save descriptor: " + msg);
           return;
         }
 
@@ -105,7 +113,7 @@ const VoiceRecorder = ({ token, mode = "verify", onUploadComplete }) => {
         const storedRes = await fetch(`${API_BASE}/get-voice`, {
           method: "GET",
           headers: {
-            Authorization: `Bearer ${finalToken}`,
+            Authorization: `Bearer ${token}`,
           },
         });
 
