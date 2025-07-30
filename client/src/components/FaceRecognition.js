@@ -10,6 +10,7 @@ const FaceRecognition = ({ onUploadComplete }) => {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const [descriptor, setDescriptor] = useState(null);
+  const [descriptorReady, setDescriptorReady] = useState(false);
   const [status, setStatus] = useState("Loading face detection models...");
   const [isLoading, setIsLoading] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
@@ -32,7 +33,7 @@ const FaceRecognition = ({ onUploadComplete }) => {
         .then((stream) => {
           videoRef.current.srcObject = stream;
           setStatus("Camera on. Click 'Capture' to scan face.");
-          setTimeout(() => setCameraReady(true), 1500); // allow camera to warm up
+          setTimeout(() => setCameraReady(true), 1500); // buffer to allow camera to stabilize
         })
         .catch((err) => {
           console.error("Webcam error:", err);
@@ -115,44 +116,16 @@ const FaceRecognition = ({ onUploadComplete }) => {
       result.descriptor.length === 128
     ) {
       const currentDescriptor = Array.from(result.descriptor);
-      console.log("✅ Descriptor length:", currentDescriptor.length);
       setDescriptor(currentDescriptor);
-      setStatus("✅ Face captured. Now click 'Save'.");
+      setDescriptorReady(false);
+      setStatus("✅ Face captured. Validating...");
 
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setStatus("❌ No authentication token. Please log in.");
-        return;
-      }
-
-      setIsLoading(true);
-
-      try {
-        const res = await axios.get(`${API_BASE}/get-face`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        const storedDescriptor = res.data?.descriptor;
-
-        if (!Array.isArray(storedDescriptor) || storedDescriptor.length === 0) {
-          setStatus("❌ You haven't enrolled your face yet. Please click 'Save Face' first.");
-          return;
-        }
-
-        const isMatch = compareDescriptors(currentDescriptor, storedDescriptor);
-
-        if (isMatch) {
-          setStatus("✅ Face matched. Now record your voice...");
-          onUploadComplete?.();
-        } else {
-          setStatus("❌ Face does not match our records. Try again.");
-        }
-      } catch (err) {
-        console.error("Failed to fetch face data", err.response || err.message || err);
-        setStatus("❌ Error checking stored face data.");
-      } finally {
-        setIsLoading(false);
-      }
+      // ⏳ Add delay before confirming readiness
+      setTimeout(() => {
+        const isValid = Array.isArray(currentDescriptor) && currentDescriptor.length === 128;
+        setDescriptorReady(isValid);
+        setStatus(isValid ? "✅ Face ready. Click Save." : "❌ Detection unstable. Try again.");
+      }, 500);
     } else {
       setStatus("❌ Face detection failed. Please try again.");
     }
@@ -226,7 +199,8 @@ const FaceRecognition = ({ onUploadComplete }) => {
           </button>
           <button
             onClick={saveFaceDescriptor}
-            className="bg-green-600 text-white px-4 py-2 rounded"
+            disabled={!descriptorReady}
+            className="bg-green-600 text-white px-4 py-2 rounded disabled:opacity-50"
           >
             Save Face
           </button>
