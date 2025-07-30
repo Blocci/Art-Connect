@@ -2,15 +2,16 @@ import React, { useState } from "react";
 import { ReactMediaRecorder } from "react-media-recorder";
 import Spinner from "./Spinner";
 
+const VOICE_SERVICE_URL = "https://artconnect-voiceservice.onrender.com";
 const API_BASE = process.env.REACT_APP_API_BASE || "https://your-backend.onrender.com/api";
-const VOICE_MATCH_THRESHOLD = 0.75; // adjust for strictness
+const VOICE_MATCH_THRESHOLD = 0.75;
 
 const VoiceRecorder = ({ token, mode = "verify", onUploadComplete }) => {
   const [blob, setBlob] = useState(null);
   const [statusMsg, setStatusMsg] = useState("");
   const [uploading, setUploading] = useState(false);
 
-  const endpoint = `${API_BASE}/api/${mode === "register" ? "enroll-voice" : "verify-voice"}`;
+  const descriptorEndpoint = `${VOICE_SERVICE_URL}/extract-voice-descriptor`;
 
   const handleStop = (recordedBlob) => {
     if (recordedBlob?.blob && recordedBlob.blob.size > 0) {
@@ -36,7 +37,8 @@ const VoiceRecorder = ({ token, mode = "verify", onUploadComplete }) => {
       const formData = new FormData();
       formData.append("audio", blob, "voice.webm");
 
-      const res = await fetch(endpoint, {
+      // Send to FastAPI to extract descriptor
+      const res = await fetch(descriptorEndpoint, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -46,24 +48,35 @@ const VoiceRecorder = ({ token, mode = "verify", onUploadComplete }) => {
 
       const data = await res.json();
 
-      if (!res.ok) {
-        setStatusMsg("❌ Upload failed: " + (data.message || "Bad request"));
+      if (!res.ok || !data?.descriptor) {
+        setStatusMsg("❌ Voice descriptor extraction failed.");
         return;
       }
 
-      if (mode === "register") {
-        setStatusMsg("✅ Voice registered.");
-        onUploadComplete?.();
-      } else {
-        const recordedDescriptor = data.descriptor;
+      const descriptor = data.descriptor;
 
-        if (!recordedDescriptor) {
-          setStatusMsg("❌ Voice descriptor not returned.");
+      if (mode === "register") {
+        // Send descriptor to backend to save
+        const saveRes = await fetch(`${API_BASE}/enroll-voice`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ descriptor }),
+        });
+
+        if (!saveRes.ok) {
+          const msg = await saveRes.text();
+          setStatusMsg("❌ Failed to save descriptor: " + msg);
           return;
         }
 
-        // Fetch stored descriptor
-        const storedRes = await fetch(`${API_BASE}/api/get-voice`, {
+        setStatusMsg("✅ Voice registered.");
+        onUploadComplete?.();
+      } else {
+        // Get stored descriptor from backend
+        const storedRes = await fetch(`${API_BASE}/get-voice`, {
           method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -78,7 +91,7 @@ const VoiceRecorder = ({ token, mode = "verify", onUploadComplete }) => {
           return;
         }
 
-        const distance = euclideanDistance(recordedDescriptor, storedDescriptor);
+        const distance = euclideanDistance(descriptor, storedDescriptor);
 
         if (distance < VOICE_MATCH_THRESHOLD) {
           setStatusMsg("✅ Voice matched. Access granted.");
