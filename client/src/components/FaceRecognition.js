@@ -116,9 +116,10 @@ const FaceRecognition = ({ onUploadComplete }) => {
 
       const storedDescriptor = res.data?.descriptor;
 
-      if (!storedDescriptor) {
-        setStatus("❌ No face data found on server.");
-        setIsLoading(false); // 🛑 stop spinner
+      // ✅ FIX: Check for valid array and length
+      if (!Array.isArray(storedDescriptor) || storedDescriptor.length === 0) {
+        setStatus("❌ You haven't enrolled your face yet. Please click 'Save Face' first.");
+        setIsLoading(false);
         return;
       }
 
