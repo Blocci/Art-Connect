@@ -3,7 +3,7 @@ import * as faceapi from "face-api.js";
 import axios from "axios";
 import Spinner from "./Spinner";
 
-const API_BASE = process.env.REACT_APP_API_BASE || "https://your-backend.onrender.com/api";
+const API_BASE = process.env.REACT_APP_API_BASE;
 const FACE_MATCH_THRESHOLD = 0.5; // Tune as needed
 
 const FaceRecognition = ({ onUploadComplete }) => {
