@@ -1,12 +1,16 @@
 import React, { useRef, useEffect, useState } from "react";
 import * as faceapi from "face-api.js";
 import axios from "axios";
+import Spinner from "./Spinner";
+
+const FACE_MATCH_THRESHOLD = 0.5; // Tune as needed (e.g., 0.4 stricter)
 
 const FaceRecognition = ({ onUploadComplete }) => {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const [descriptor, setDescriptor] = useState(null);
   const [status, setStatus] = useState("Loading face detection models...");
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const loadModels = async () => {
@@ -54,7 +58,8 @@ const FaceRecognition = ({ onUploadComplete }) => {
         video.readyState < 2 ||
         video.videoWidth === 0 ||
         video.videoHeight === 0
-      ) return;
+      )
+        return;
 
       const detections = await faceapi
         .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
@@ -78,6 +83,11 @@ const FaceRecognition = ({ onUploadComplete }) => {
     return () => clearInterval(interval);
   }, []);
 
+  const compareDescriptors = (d1, d2) => {
+    const distance = faceapi.euclideanDistance(d1, d2);
+    return distance < FACE_MATCH_THRESHOLD;
+  };
+
   const captureFaceDescriptor = async () => {
     if (!videoRef.current) return;
 
@@ -87,8 +97,42 @@ const FaceRecognition = ({ onUploadComplete }) => {
       .withFaceDescriptor();
 
     if (result && result.descriptor) {
-      setDescriptor(Array.from(result.descriptor));
-      setStatus("✅ Face captured. Now click 'Save'.");
+      const currentDescriptor = Array.from(result.descriptor);
+      setDescriptor(currentDescriptor);
+
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setStatus("❌ No authentication token. Please log in.");
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const res = await axios.get("https://localhost:3001/api/get-face", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const storedDescriptor = res.data?.descriptor;
+
+        if (!storedDescriptor) {
+          setStatus("❌ No face data found on server.");
+          return;
+        }
+
+        const isMatch = compareDescriptors(currentDescriptor, storedDescriptor);
+
+        if (isMatch) {
+          setStatus("✅ Face matched. Now record your voice...");
+          if (onUploadComplete) onUploadComplete();
+        } else {
+          setStatus("❌ Face does not match our records. Try again.");
+        }
+      } catch (err) {
+        console.error("Failed to fetch face data", err);
+        setStatus("❌ Error checking stored face data.");
+      } finally {
+        setIsLoading(false);
+      }
     } else {
       setStatus("❌ No face detected. Try again.");
     }
@@ -106,6 +150,8 @@ const FaceRecognition = ({ onUploadComplete }) => {
       return;
     }
 
+    setIsLoading(true);
+
     try {
       await axios.post(
         "https://localhost:3001/api/enroll-face",
@@ -122,8 +168,12 @@ const FaceRecognition = ({ onUploadComplete }) => {
     } catch (error) {
       console.error("Error uploading face descriptor:", error);
       setStatus("❌ Failed to save face descriptor.");
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  if (isLoading) return <Spinner text="Processing face..." />;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>

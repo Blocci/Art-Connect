@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import axios from "axios";
 import FaceRecognition from "./FaceRecognition";
 import VoiceRecorder from "./VoiceRecorder";
+import { useAuth } from "../auth/AuthProvider"; // ✅
+import { useNavigate } from "react-router-dom"; // ✅
 
 const API_BASE = "https://localhost:3001";
 
@@ -10,7 +12,9 @@ const Register2FA = () => {
   const [status, setStatus] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [token, setToken] = useState("");
+
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleRegister = async () => {
     if (!username || !password) {
@@ -25,9 +29,8 @@ const Register2FA = () => {
       });
 
       const receivedToken = res.data.token;
-      localStorage.setItem("token", receivedToken);
-      setToken(receivedToken);
 
+      login(receivedToken); // ✅ Store token via context
       setStatus("✅ Registered. Now scan your face...");
       setStep(2);
     } catch (err) {
@@ -36,10 +39,32 @@ const Register2FA = () => {
     }
   };
 
+  const handleVoiceDone = () => {
+    setStatus("🎉 Voice uploaded. Registration complete!");
+
+    setStep(4);
+
+    setTimeout(() => {
+      navigate("/dashboard"); // optional — or redirect to /login if you prefer
+    }, 1000);
+  };
+
   return (
     <div className="p-6 max-w-md mx-auto bg-white rounded shadow">
       <h2 className="text-xl font-bold mb-4">Register with Face + Voice</h2>
-      <p className="mb-4 text-sm text-gray-600">{status}</p>
+      <p
+        className={`mb-4 text-sm ${
+          status.includes("❌")
+            ? "text-red-500"
+            : status.includes("✅")
+            ? "text-green-600"
+            : status
+            ? "text-blue-500"
+            : "text-gray-600"
+        }`}
+      >
+        {status}
+      </p>
 
       {step === 1 && (
         <div className="space-y-2">
@@ -65,8 +90,9 @@ const Register2FA = () => {
         </div>
       )}
 
-      {step === 2 && token && (
+      {step === 2 && (
         <FaceRecognition
+          mode="register"
           onUploadComplete={() => {
             setStatus("✅ Face uploaded. Now record your voice...");
             setStep(3);
@@ -74,14 +100,10 @@ const Register2FA = () => {
         />
       )}
 
-      {step === 3 && token && (
+      {step === 3 && (
         <VoiceRecorder
-          token={token}
           mode="register"
-          onUploadComplete={() => {
-            setStatus("🎉 Voice uploaded. Registration complete!");
-            setStep(4);
-          }}
+          onUploadComplete={handleVoiceDone}
         />
       )}
 
