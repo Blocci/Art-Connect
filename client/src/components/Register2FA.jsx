@@ -5,7 +5,7 @@ import VoiceRecorder from "./VoiceRecorder";
 import { useAuth } from "../auth/AuthProvider"; // ✅
 import { useNavigate } from "react-router-dom"; // ✅
 
-const API_BASE = process.env.REACT_APP_API_BASE || "https://your-backend.onrender.com/api";
+const API_BASE = process.env.REACT_APP_API_BASE;
 
 const Register2FA = () => {
   const [step, setStep] = useState(1);
@@ -23,7 +23,7 @@ const Register2FA = () => {
     }
 
     try {
-      const res = await axios.post(`${API_BASE}/api/register`, {
+      const res = await axios.post(`${API_BASE}/register`, {
         username,
         password,
       });

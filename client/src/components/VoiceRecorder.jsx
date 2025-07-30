@@ -3,7 +3,7 @@ import { ReactMediaRecorder } from "react-media-recorder";
 import Spinner from "./Spinner";
 
 const VOICE_SERVICE_URL = "https://artconnect-voiceservice.onrender.com";
-const API_BASE = process.env.REACT_APP_API_BASE || "https://your-backend.onrender.com/api";
+const API_BASE = process.env.REACT_APP_API_BASE;
 const VOICE_MATCH_THRESHOLD = 0.75;
 
 const VoiceRecorder = ({ token, mode = "verify", onUploadComplete }) => {

@@ -5,7 +5,7 @@ import FaceRecognition from "./FaceRecognition";
 import VoiceRecorder from "./VoiceRecorder";
 import { useAuth } from "../auth/AuthProvider";
 
-const API_BASE = process.env.REACT_APP_API_BASE || "https://your-backend.onrender.com/api";
+const API_BASE = process.env.REACT_APP_API_BASE;
 
 const Login2FA = () => {
   const [step, setStep] = useState(1);
@@ -23,7 +23,7 @@ const Login2FA = () => {
     }
 
     try {
-      const res = await axios.post(`${API_BASE}/api/login`, {
+      const res = await axios.post(`${API_BASE}/login`, {
         username,
         password,
       });
