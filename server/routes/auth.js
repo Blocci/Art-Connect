@@ -117,8 +117,13 @@ router.post('/verify-face', verifyToken, async (req, res) => {
 router.get('/get-face', verifyToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
-    if (!user || !user.faceDescriptor?.length) {
-      return res.status(404).json({ error: 'Face data not found' });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    if (!Array.isArray(user.faceDescriptor) || user.faceDescriptor.length === 0) {
+      return res.status(404).json({ error: "Face descriptor not found" });
     }
 
     res.status(200).json({ descriptor: user.faceDescriptor });
@@ -176,32 +181,6 @@ router.post("/verify-voice", verifyToken, upload.single("audio"), async (req, re
     res.status(500).json({ message: "Server error during voice verification" });
   }
 });
-
-router.get('/get-face', verifyToken, async (req, res) => {
-  try {
-    console.log("🔍 GET /get-face hit");
-    console.log("User ID from token:", req.user.id);
-
-    const user = await User.findById(req.user.id);
-
-    if (!user) {
-      console.log("❌ User not found");
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    if (!Array.isArray(user.faceDescriptor) || user.faceDescriptor.length === 0) {
-      console.log("❌ Face descriptor missing or invalid:", user.faceDescriptor);
-      return res.status(404).json({ error: "Face descriptor not found" });
-    }
-
-    console.log("✅ Found face descriptor for user:", user.username);
-    res.status(200).json({ descriptor: user.faceDescriptor });
-  } catch (err) {
-    console.error("🔥 Error in /get-face:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
 
 // --- Misc Routes ---
 router.get("/ping", (req, res) => {
