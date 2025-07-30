@@ -5,7 +5,7 @@ import VoiceRecorder from "./VoiceRecorder";
 import { useAuth } from "../auth/AuthProvider"; // ✅
 import { useNavigate } from "react-router-dom"; // ✅
 
-const API_BASE = "https://artconnect-backend-65t2.onrender.com";
+const API_BASE = process.env.REACT_APP_API_BASE || "https://your-backend.onrender.com/api";
 
 const Register2FA = () => {
   const [step, setStep] = useState(1);
