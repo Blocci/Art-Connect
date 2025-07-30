@@ -47,7 +47,7 @@ app.use(cors({
 app.use(express.json());
 
 // Mount API routes
-app.use('/api', require('./routes/auth')); // ✅ Adjust if your route file name differs
+app.use('/api', require('./routes/userRoutes')); // ✅ Adjust if your route file name differs
 
 // Scheduled cleanup job
 cron.schedule('0 0 * * *', () => {
