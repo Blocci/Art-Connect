@@ -4,7 +4,7 @@ import axios from "axios";
 import Spinner from "./Spinner";
 
 const API_BASE = process.env.REACT_APP_API_BASE || "https://your-backend.onrender.com/api";
-const FACE_MATCH_THRESHOLD = 0.5; // Tune as needed (e.g., 0.4 stricter)
+const FACE_MATCH_THRESHOLD = 0.5; // Tune as needed
 
 const FaceRecognition = ({ onUploadComplete }) => {
   const videoRef = useRef(null);
@@ -109,7 +109,7 @@ const FaceRecognition = ({ onUploadComplete }) => {
 
       setIsLoading(true);
       try {
-        const res = await axios.get(`${API_BASE}/enroll-face`, {
+        const res = await axios.get(`${API_BASE}/get-face`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -129,7 +129,7 @@ const FaceRecognition = ({ onUploadComplete }) => {
           setStatus("❌ Face does not match our records. Try again.");
         }
       } catch (err) {
-        console.error("Failed to fetch face data", err);
+        console.error("Failed to fetch face data", err.response || err.message || err);
         setStatus("❌ Error checking stored face data.");
       } finally {
         setIsLoading(false);

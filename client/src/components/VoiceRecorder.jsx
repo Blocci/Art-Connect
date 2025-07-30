@@ -49,6 +49,7 @@ const VoiceRecorder = ({ token, mode = "verify", onUploadComplete }) => {
       const data = await res.json();
 
       if (!res.ok || !data?.descriptor) {
+        console.error("❌ Voice descriptor extraction failed:", data);
         setStatusMsg("❌ Voice descriptor extraction failed.");
         return;
       }
@@ -68,6 +69,7 @@ const VoiceRecorder = ({ token, mode = "verify", onUploadComplete }) => {
 
         if (!saveRes.ok) {
           const msg = await saveRes.text();
+          console.error("❌ Failed to save descriptor:", msg);
           setStatusMsg("❌ Failed to save descriptor: " + msg);
           return;
         }
