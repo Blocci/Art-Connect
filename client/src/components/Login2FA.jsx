@@ -5,7 +5,7 @@ import FaceRecognition from "./FaceRecognition";
 import VoiceRecorder from "./VoiceRecorder";
 import { useAuth } from "../auth/AuthProvider"; // 🔐
 
-const API_BASE = "https://localhost:3001";
+const API_BASE = "https://artconnect-backend-65t2.onrender.com";
 
 const Login2FA = () => {
   const [step, setStep] = useState(1);

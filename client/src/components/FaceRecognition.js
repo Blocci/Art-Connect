@@ -3,6 +3,7 @@ import * as faceapi from "face-api.js";
 import axios from "axios";
 import Spinner from "./Spinner";
 
+const API_BASE = "https://artconnect-backend-65t2.onrender.com";
 const FACE_MATCH_THRESHOLD = 0.5; // Tune as needed (e.g., 0.4 stricter)
 
 const FaceRecognition = ({ onUploadComplete }) => {
@@ -108,7 +109,7 @@ const FaceRecognition = ({ onUploadComplete }) => {
 
       setIsLoading(true);
       try {
-        const res = await axios.get("https://localhost:3001/api/get-face", {
+        const res = await axios.get(`${API_BASE}/enroll-face`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -154,7 +155,7 @@ const FaceRecognition = ({ onUploadComplete }) => {
 
     try {
       await axios.post(
-        "https://localhost:3001/api/enroll-face",
+        `${API_BASE}/enroll-face`,
         { descriptor },
         {
           headers: {

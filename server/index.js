@@ -32,7 +32,7 @@ app.use(cors({
     const allowedOrigins = [
       'http://localhost:3000',
       'https://localhost:3000',
-      'https://localhost:3001'
+      'https://artconnect-frontend.onrender.com'
     ];
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
