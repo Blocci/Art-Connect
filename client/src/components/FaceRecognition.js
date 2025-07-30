@@ -93,7 +93,7 @@ const FaceRecognition = ({ onUploadComplete }) => {
   if (!videoRef.current) return;
 
   const result = await faceapi
-    .detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions())
+    .detectSingleFace(videoRef.current, new faceapi.SsdMobilenetv1Options())
     .withFaceLandmarks()
     .withFaceDescriptor();
 
@@ -106,6 +106,8 @@ const FaceRecognition = ({ onUploadComplete }) => {
     const currentDescriptor = Array.from(result.descriptor);
     console.log("📦 Captured descriptor:", currentDescriptor);
     console.log("Descriptor length:", currentDescriptor.length);
+    console.log("Raw descriptor from face-api.js:", result.descriptor);
+    console.log("Float32 length:", result.descriptor?.length);
     setDescriptor(currentDescriptor);
     setStatus("✅ Face captured. Now click 'Save'.");
 
