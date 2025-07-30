@@ -116,20 +116,29 @@ router.post('/verify-face', verifyToken, async (req, res) => {
 
 router.get('/get-face', verifyToken, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
+    console.log("🔍 /get-face hit");
+    console.log("User from token:", req.user); // make sure this logs something
 
+    const user = await User.findById(req.user.id);
     if (!user) {
+      console.log("❌ User not found");
       return res.status(404).json({ error: "User not found" });
     }
 
+    console.log("Found user:", user.username);
+    console.log("faceDescriptor type:", typeof user.faceDescriptor);
+    console.log("faceDescriptor content:", user.faceDescriptor);
+
     if (!Array.isArray(user.faceDescriptor) || user.faceDescriptor.length === 0) {
+      console.log("❌ Invalid or missing face descriptor");
       return res.status(404).json({ error: "Face descriptor not found" });
     }
 
+    console.log("✅ Returning face descriptor");
     res.status(200).json({ descriptor: user.faceDescriptor });
   } catch (err) {
-    console.error("Error retrieving face descriptor:", err);
-    res.status(500).json({ error: "Server error retrieving face data" });
+    console.error("🔥 Error in /get-face:", err);
+    res.status(500).json({ error: "Server error" });
   }
 });
 

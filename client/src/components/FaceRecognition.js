@@ -148,6 +148,7 @@ const FaceRecognition = ({ onUploadComplete }) => {
     }
 
     const token = localStorage.getItem("token");
+    console.log("Token being sent:", token);
     if (!token) {
       setStatus("❌ No authentication token. Please log in.");
       return;
