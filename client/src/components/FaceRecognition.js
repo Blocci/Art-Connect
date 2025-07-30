@@ -12,6 +12,7 @@ const FaceRecognition = ({ onUploadComplete }) => {
   const [descriptor, setDescriptor] = useState(null);
   const [status, setStatus] = useState("Loading face detection models...");
   const [isLoading, setIsLoading] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
 
   useEffect(() => {
     const loadModels = async () => {
@@ -31,6 +32,7 @@ const FaceRecognition = ({ onUploadComplete }) => {
         .then((stream) => {
           videoRef.current.srcObject = stream;
           setStatus("Camera on. Click 'Capture' to scan face.");
+          setTimeout(() => setCameraReady(true), 1500); // allow camera to warm up
         })
         .catch((err) => {
           console.error("Webcam error:", err);
@@ -89,10 +91,20 @@ const FaceRecognition = ({ onUploadComplete }) => {
   };
 
   const captureFaceDescriptor = async () => {
-    if (!videoRef.current) return;
+    const video = videoRef.current;
+    if (
+      !video ||
+      video.readyState < 2 ||
+      video.videoWidth === 0 ||
+      video.videoHeight === 0
+    ) {
+      setStatus("⏳ Waiting for camera...");
+      setTimeout(captureFaceDescriptor, 500);
+      return;
+    }
 
     const result = await faceapi
-      .detectSingleFace(videoRef.current, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
+      .detectSingleFace(video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
       .withFaceLandmarks()
       .withFaceDescriptor();
 
@@ -100,10 +112,10 @@ const FaceRecognition = ({ onUploadComplete }) => {
       result &&
       result.descriptor &&
       result.descriptor instanceof Float32Array &&
-      result.descriptor.length >= 10
+      result.descriptor.length === 128
     ) {
       const currentDescriptor = Array.from(result.descriptor);
-      console.log("✅ Descriptor captured:", currentDescriptor.length);
+      console.log("✅ Descriptor length:", currentDescriptor.length);
       setDescriptor(currentDescriptor);
       setStatus("✅ Face captured. Now click 'Save'.");
 
@@ -147,7 +159,7 @@ const FaceRecognition = ({ onUploadComplete }) => {
   };
 
   const saveFaceDescriptor = async () => {
-    if (!Array.isArray(descriptor) || descriptor.length < 10) {
+    if (!Array.isArray(descriptor) || descriptor.length !== 128) {
       setStatus("❌ No valid face descriptor. Please click Capture first.");
       return;
     }
@@ -205,10 +217,17 @@ const FaceRecognition = ({ onUploadComplete }) => {
       <div style={{ marginTop: "1rem", textAlign: "center" }}>
         <p className="text-sm text-gray-700">{status}</p>
         <div style={{ display: "flex", gap: "1rem", justifyContent: "center", marginTop: "0.5rem" }}>
-          <button onClick={captureFaceDescriptor} className="bg-blue-600 text-white px-4 py-2 rounded">
+          <button
+            onClick={captureFaceDescriptor}
+            disabled={!cameraReady}
+            className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
+          >
             Capture
           </button>
-          <button onClick={saveFaceDescriptor} className="bg-green-600 text-white px-4 py-2 rounded">
+          <button
+            onClick={saveFaceDescriptor}
+            className="bg-green-600 text-white px-4 py-2 rounded"
+          >
             Save Face
           </button>
         </div>
