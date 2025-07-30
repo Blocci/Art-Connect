@@ -53,15 +53,17 @@ const VoiceRecorder = ({ token, mode = "verify", onUploadComplete }) => {
       }
 
       setDescriptor(data.descriptor);
+      setStatusMsg("✅ Voice captured. Validating...");
 
-      // Add buffer before enabling Upload
+      // ⏳ Add 500ms buffer before enabling Upload
       setTimeout(() => {
-        setDescriptorReady(true);
-        setStatusMsg("✅ Voice ready. Click Upload.");
+        const isValid = Array.isArray(data.descriptor) && data.descriptor.length >= 10;
+        setDescriptorReady(isValid);
+        setStatusMsg(isValid ? "✅ Voice ready. Click Upload." : "❌ Voice unstable. Try again.");
       }, 500);
     } catch (err) {
       console.error("❌ Voice descriptor fetch error:", err);
-      setStatusMsg("❌ Network error. Try again.");
+      setStatusMsg("❌ Network or server error. Try again.");
       setDescriptorReady(false);
     }
   };
