@@ -97,9 +97,17 @@ const FaceRecognition = ({ onUploadComplete }) => {
     .withFaceLandmarks()
     .withFaceDescriptor();
 
-  if (result && result.descriptor) {
+  if (
+    result &&
+    result.descriptor &&
+    Array.isArray(Array.from(result.descriptor)) &&
+    Array.from(result.descriptor).length >= 10
+  ) {
     const currentDescriptor = Array.from(result.descriptor);
+    console.log("📦 Captured descriptor:", currentDescriptor);
+    console.log("Descriptor length:", currentDescriptor.length);
     setDescriptor(currentDescriptor);
+    setStatus("✅ Face captured. Now click 'Save'.");
 
     const token = localStorage.getItem("token");
     if (!token) {
@@ -107,7 +115,7 @@ const FaceRecognition = ({ onUploadComplete }) => {
       return;
     }
 
-    setIsLoading(true); // 🔄 show spinner while checking
+    setIsLoading(true);
 
     try {
       const res = await axios.get(`${API_BASE}/get-face`, {
@@ -116,10 +124,8 @@ const FaceRecognition = ({ onUploadComplete }) => {
 
       const storedDescriptor = res.data?.descriptor;
 
-      // ✅ FIX: Check for valid array and length
       if (!Array.isArray(storedDescriptor) || storedDescriptor.length === 0) {
         setStatus("❌ You haven't enrolled your face yet. Please click 'Save Face' first.");
-        setIsLoading(false);
         return;
       }
 
@@ -135,10 +141,10 @@ const FaceRecognition = ({ onUploadComplete }) => {
       console.error("Failed to fetch face data", err.response || err.message || err);
       setStatus("❌ Error checking stored face data.");
     } finally {
-      setIsLoading(false); // ✅ always stop loading spinner
+      setIsLoading(false);
     }
   } else {
-    setStatus("❌ No face detected. Try again.");
+    setStatus("❌ No face detected. Please try again.");
   }
 };
 
@@ -158,6 +164,7 @@ const FaceRecognition = ({ onUploadComplete }) => {
     setIsLoading(true);
 
     try {
+      console.log("📤 Attempting to save descriptor:", descriptor);
       await axios.post(
         `${API_BASE}/enroll-face`,
         { descriptor },
