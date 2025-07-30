@@ -10,34 +10,29 @@ const VoiceRecorder = ({ token, mode = "verify", onUploadComplete }) => {
   const [blob, setBlob] = useState(null);
   const [statusMsg, setStatusMsg] = useState("");
   const [uploading, setUploading] = useState(false);
-  const [descriptor, setDescriptor] = useState(null);
   const [descriptorReady, setDescriptorReady] = useState(false);
+  const [descriptor, setDescriptor] = useState(null);
 
   const descriptorEndpoint = `${VOICE_SERVICE_URL}/extract-voice-descriptor`;
 
   const handleStop = (recordedBlob) => {
     if (recordedBlob?.blob && recordedBlob.blob.size > 0) {
       setBlob(recordedBlob.blob);
-      setStatusMsg("✅ Recording captured. Click 'Upload' to continue.");
+      setStatusMsg("✅ Recording captured. Validating...");
+      setDescriptorReady(false);
+      extractDescriptor(recordedBlob.blob);
     } else {
       setStatusMsg("❌ Recording failed or empty. Please try again.");
+      setBlob(null);
+      setDescriptor(null);
+      setDescriptorReady(false);
     }
   };
 
-  const euclideanDistance = (v1, v2) => {
-    if (!v1 || !v2 || v1.length !== v2.length) return Infinity;
-    return Math.sqrt(v1.reduce((sum, val, i) => sum + (val - v2[i]) ** 2, 0));
-  };
-
-  const uploadVoice = async () => {
-    if (!blob || uploading) return;
-
-    setUploading(true);
-    setStatusMsg("📤 Uploading voice...");
-
+  const extractDescriptor = async (audioBlob) => {
     try {
       const formData = new FormData();
-      formData.append("audio", blob, "voice.webm");
+      formData.append("audio", audioBlob, "voice.webm");
 
       const res = await fetch(descriptorEndpoint, {
         method: "POST",
@@ -49,87 +44,91 @@ const VoiceRecorder = ({ token, mode = "verify", onUploadComplete }) => {
 
       const data = await res.json();
 
-      if (!res.ok || !data?.descriptor) {
+      if (!res.ok || !data?.descriptor || data.descriptor.length < 10) {
         console.error("❌ Voice descriptor extraction failed:", data);
-        setStatusMsg("❌ Voice descriptor extraction failed.");
-        setUploading(false);
+        setStatusMsg("❌ Descriptor extraction failed. Try recording again.");
+        setDescriptor(null);
+        setDescriptorReady(false);
         return;
       }
 
-      setDescriptor(null);
-      setDescriptorReady(false);
-      const receivedDescriptor = data.descriptor;
+      setDescriptor(data.descriptor);
 
-      // Wait briefly and validate descriptor
+      // Add buffer before enabling Upload
       setTimeout(() => {
-        if (
-          Array.isArray(receivedDescriptor) &&
-          receivedDescriptor.length >= 64
-        ) {
-          setDescriptor(receivedDescriptor);
-          setDescriptorReady(true);
-          setStatusMsg("✅ Voice descriptor ready. Finalizing...");
-        } else {
-          console.warn("❌ Invalid descriptor received:", receivedDescriptor);
-          setStatusMsg("❌ Descriptor unstable. Please re-record.");
-          setUploading(false);
-        }
+        setDescriptorReady(true);
+        setStatusMsg("✅ Voice ready. Click Upload.");
       }, 500);
+    } catch (err) {
+      console.error("❌ Voice descriptor fetch error:", err);
+      setStatusMsg("❌ Network error. Try again.");
+      setDescriptorReady(false);
+    }
+  };
 
-      // Continue after descriptor is ready
-      setTimeout(async () => {
-        if (!descriptorReady || !descriptor) return;
+  const euclideanDistance = (v1, v2) => {
+    if (!v1 || !v2 || v1.length !== v2.length) return Infinity;
+    return Math.sqrt(v1.reduce((sum, val, i) => sum + (val - v2[i]) ** 2, 0));
+  };
 
-        if (mode === "register") {
-          const saveRes = await fetch(`${API_BASE}/enroll-voice`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ descriptor }),
-          });
+  const uploadVoice = async () => {
+    if (!descriptorReady || !Array.isArray(descriptor) || descriptor.length < 10 || uploading) {
+      setStatusMsg("❌ Voice descriptor not ready. Record again.");
+      return;
+    }
 
-          if (!saveRes.ok) {
-            const msg = await saveRes.text();
-            console.error("❌ Failed to save descriptor:", msg);
-            setStatusMsg("❌ Failed to save descriptor: " + msg);
-            return;
-          }
+    setUploading(true);
+    setStatusMsg("📤 Uploading voice...");
 
-          setStatusMsg("✅ Voice registered.");
+    try {
+      if (mode === "register") {
+        const saveRes = await fetch(`${API_BASE}/enroll-voice`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ descriptor }),
+        });
+
+        if (!saveRes.ok) {
+          const msg = await saveRes.text();
+          setStatusMsg("❌ Failed to save descriptor: " + msg);
+          return;
+        }
+
+        setStatusMsg("✅ Voice registered.");
+        onUploadComplete?.();
+      } else {
+        const storedRes = await fetch(`${API_BASE}/get-voice`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const storedData = await storedRes.json();
+        const storedDescriptor = storedData?.descriptor;
+
+        if (!storedDescriptor) {
+          setStatusMsg("❌ No enrolled voice found.");
+          return;
+        }
+
+        const distance = euclideanDistance(descriptor, storedDescriptor);
+
+        if (distance < VOICE_MATCH_THRESHOLD) {
+          setStatusMsg("✅ Voice matched. Access granted.");
           onUploadComplete?.();
         } else {
-          const storedRes = await fetch(`${API_BASE}/get-voice`, {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
-
-          const storedData = await storedRes.json();
-          const storedDescriptor = storedData?.descriptor;
-
-          if (!storedDescriptor) {
-            setStatusMsg("❌ No enrolled voice found.");
-            return;
-          }
-
-          const distance = euclideanDistance(descriptor, storedDescriptor);
-
-          if (distance < VOICE_MATCH_THRESHOLD) {
-            setStatusMsg("✅ Voice matched. Access granted.");
-            onUploadComplete?.();
-          } else {
-            setStatusMsg("❌ Voice did not match. Try again.");
-          }
+          setStatusMsg("❌ Voice did not match. Try again.");
         }
-      }, 750); // slight buffer for descriptorReady to update
+      }
     } catch (err) {
       console.error("❌ Voice upload error:", err);
       setStatusMsg("❌ Upload failed.");
     } finally {
-      setTimeout(() => setUploading(false), 1000); // delay to allow response to show
+      setUploading(false);
     }
   };
 
