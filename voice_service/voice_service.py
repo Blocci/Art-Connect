@@ -5,12 +5,13 @@ import numpy as np
 import soundfile as sf
 import tempfile
 import os
+import time
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # or restrict to your frontend
+    allow_origins=["*"],  # tighten in prod
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -22,26 +23,32 @@ encoder = VoiceEncoder()
 async def extract_voice_descriptor(audio: UploadFile = File(...)):
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_audio:
-            temp_audio.write(await audio.read())
+            contents = await audio.read()
+            temp_audio.write(contents)
             temp_audio_path = temp_audio.name
 
-        wav, sr = sf.read(temp_audio_path)
-        os.remove(temp_audio_path)
+        # 🧠 Buffer: wait to ensure file is flushed and readable
+        time.sleep(0.2)
+
+        # ✅ Try to read the audio file
+        try:
+            wav, sr = sf.read(temp_audio_path)
+        except Exception as e:
+            print("❌ Error reading audio file:", e)
+            raise HTTPException(status_code=400, detail="Invalid audio file format.")
 
         if sr != 16000:
-            raise HTTPException(status_code=400, detail="Audio must be 16kHz")
+            print(f"❌ Sample rate incorrect: {sr}")
+            raise HTTPException(status_code=400, detail="Audio must be 16kHz.")
 
         preprocessed = preprocess_wav(wav, source_sr=sr)
-        if preprocessed.shape[0] == 0:
-            raise HTTPException(status_code=400, detail="No usable audio found")
-
         embedding = encoder.embed_utterance(preprocessed)
 
-        if embedding is None or len(embedding) == 0:
-            raise HTTPException(status_code=500, detail="Descriptor extraction failed")
+        os.remove(temp_audio_path)
 
-        return {"descriptor": embedding.tolist()}
+        print("✅ Descriptor length:", len(embedding))
+        return { "descriptor": embedding.tolist() }
 
     except Exception as e:
-        print("❌ Error in /extract-voice-descriptor:", str(e))
-        raise HTTPException(status_code=500, detail=str(e))
+        print("🔥 Server error:", str(e))
+        raise HTTPException(status_code=500, detail="Internal server error.")
