@@ -1,5 +1,4 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 
 const AuthContext = createContext();
@@ -7,7 +6,6 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(() => localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
 
   useEffect(() => {
     setLoading(false); // Could simulate loading check or refresh token
