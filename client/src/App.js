@@ -1,13 +1,12 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "./auth/AuthProvider";
-import ProtectedRoute from "./auth/ProtectedRoute";
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import Login2FA from './components/Login2FA';
+import Register2FA from './components/Register2FA';
+import Dashboard from './components/Dashboard';
+import SettingsPanel from './components/SettingsPanel';
+import ProtectedRoute from './auth/ProtectedRoute';
+import { AuthProvider } from './auth/AuthProvider';
 
-import Login2FA from "./components/Login2FA";
-import Register2FA from "./components/Register2FA";
-import Dashboard from "./components/Dashboard";
-import SettingsPanel from "./components/SettingsPanel"; // ✅ NEW
-
-const App = () => {
+function App() {
   return (
     <AuthProvider>
       <Router>
@@ -30,11 +29,11 @@ const App = () => {
               </ProtectedRoute>
             }
           />
-          <Route path="*" element={<Login2FA />} />
+          <Route path="*" element={<Navigate to="/login" />} />
         </Routes>
       </Router>
     </AuthProvider>
   );
-};
+}
 
 export default App;

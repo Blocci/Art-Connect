@@ -1,18 +1,19 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom"; // ✅ import Link
 import axios from "axios";
 import FaceRecognition from "./FaceRecognition";
 import VoiceRecorder from "./VoiceRecorder";
-import { useAuth } from "../auth/AuthProvider"; // 🔐
+import { useAuth } from "../auth/AuthProvider";
 
 const API_BASE = process.env.REACT_APP_API_BASE || "https://your-backend.onrender.com/api";
+
 const Login2FA = () => {
   const [step, setStep] = useState(1);
   const [status, setStatus] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
-  const { login } = useAuth(); // 🎯 token manager
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleLogin = async () => {
@@ -29,7 +30,7 @@ const Login2FA = () => {
 
       const receivedToken = res.data.token;
 
-      login(receivedToken); // ✅ use context instead of manual setToken/localStorage
+      login(receivedToken);
       setStatus("✅ Login successful. Now scan your face...");
       setStep(2);
     } catch (err) {
@@ -42,7 +43,7 @@ const Login2FA = () => {
     setStep(4);
 
     setTimeout(() => {
-      navigate("/dashboard"); // 🔁 route to protected page
+      navigate("/dashboard");
     }, 1000);
   };
 
@@ -84,6 +85,14 @@ const Login2FA = () => {
           >
             Login
           </button>
+
+          {/* ✅ Register link below the login form */}
+          <p className="text-sm mt-4">
+            Don’t have an account?{" "}
+            <Link to="/register" className="text-blue-600 underline">
+              Register here
+            </Link>
+          </p>
         </div>
       )}
 
