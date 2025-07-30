@@ -90,54 +90,56 @@ const FaceRecognition = ({ onUploadComplete }) => {
   };
 
   const captureFaceDescriptor = async () => {
-    if (!videoRef.current) return;
+  if (!videoRef.current) return;
 
-    const result = await faceapi
-      .detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions())
-      .withFaceLandmarks()
-      .withFaceDescriptor();
+  const result = await faceapi
+    .detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions())
+    .withFaceLandmarks()
+    .withFaceDescriptor();
 
-    if (result && result.descriptor) {
-      const currentDescriptor = Array.from(result.descriptor);
-      setDescriptor(currentDescriptor);
+  if (result && result.descriptor) {
+    const currentDescriptor = Array.from(result.descriptor);
+    setDescriptor(currentDescriptor);
 
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setStatus("❌ No authentication token. Please log in.");
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setStatus("❌ No authentication token. Please log in.");
+      return;
+    }
+
+    setIsLoading(true); // 🔄 show spinner while checking
+
+    try {
+      const res = await axios.get(`${API_BASE}/get-face`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const storedDescriptor = res.data?.descriptor;
+
+      if (!storedDescriptor) {
+        setStatus("❌ No face data found on server.");
+        setIsLoading(false); // 🛑 stop spinner
         return;
       }
 
-      setIsLoading(true);
-      try {
-        const res = await axios.get(`${API_BASE}/get-face`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+      const isMatch = compareDescriptors(currentDescriptor, storedDescriptor);
 
-        const storedDescriptor = res.data?.descriptor;
-
-        if (!storedDescriptor) {
-          setStatus("❌ No face data found on server.");
-          return;
-        }
-
-        const isMatch = compareDescriptors(currentDescriptor, storedDescriptor);
-
-        if (isMatch) {
-          setStatus("✅ Face matched. Now record your voice...");
-          if (onUploadComplete) onUploadComplete();
-        } else {
-          setStatus("❌ Face does not match our records. Try again.");
-        }
-      } catch (err) {
-        console.error("Failed to fetch face data", err.response || err.message || err);
-        setStatus("❌ Error checking stored face data.");
-      } finally {
-        setIsLoading(false);
+      if (isMatch) {
+        setStatus("✅ Face matched. Now record your voice...");
+        if (onUploadComplete) onUploadComplete();
+      } else {
+        setStatus("❌ Face does not match our records. Try again.");
       }
-    } else {
-      setStatus("❌ No face detected. Try again.");
+    } catch (err) {
+      console.error("Failed to fetch face data", err.response || err.message || err);
+      setStatus("❌ Error checking stored face data.");
+    } finally {
+      setIsLoading(false); // ✅ always stop loading spinner
     }
-  };
+  } else {
+    setStatus("❌ No face detected. Try again.");
+  }
+};
 
   const saveFaceDescriptor = async () => {
     if (!descriptor) {
