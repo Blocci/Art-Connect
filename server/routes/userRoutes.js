@@ -71,8 +71,9 @@ router.post('/login', async (req, res) => {
 router.post("/enroll-face", verifyToken, async (req, res) => {
   try {
     const { descriptor } = req.body;
-    if (!descriptor || !Array.isArray(descriptor))
-      return res.status(400).json({ error: "Descriptor missing or invalid" });
+    if (!Array.isArray(descriptor) || descriptor.length < 10) {
+      return res.status(400).json({ error: "Descriptor is missing or invalid" });
+    }
 
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ error: "User not found" });

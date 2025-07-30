@@ -143,8 +143,8 @@ const FaceRecognition = ({ onUploadComplete }) => {
 };
 
   const saveFaceDescriptor = async () => {
-    if (!descriptor) {
-      setStatus("No descriptor found. Capture face first.");
+    if (!Array.isArray(descriptor) || descriptor.length < 10) {
+      setStatus("❌ No valid face descriptor. Please click Capture first.");
       return;
     }
 
