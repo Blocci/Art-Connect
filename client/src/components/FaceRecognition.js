@@ -4,7 +4,7 @@ import axios from "axios";
 import Spinner from "./Spinner";
 
 const API_BASE = process.env.REACT_APP_API_BASE;
-const FACE_MATCH_THRESHOLD = 0.5; // Tune as needed
+const FACE_MATCH_THRESHOLD = 0.5;
 
 const FaceRecognition = ({ onUploadComplete }) => {
   const videoRef = useRef(null);
@@ -17,10 +17,9 @@ const FaceRecognition = ({ onUploadComplete }) => {
     const loadModels = async () => {
       const MODEL_URL = "/models";
       await Promise.all([
-        faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+        faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
         faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
         faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
-        faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
       ]);
       setStatus("Models loaded. Starting camera...");
       startVideo();
@@ -63,7 +62,7 @@ const FaceRecognition = ({ onUploadComplete }) => {
         return;
 
       const detections = await faceapi
-        .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
+        .detectAllFaces(video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
         .withFaceLandmarks()
         .withFaceDescriptors();
 
@@ -90,65 +89,62 @@ const FaceRecognition = ({ onUploadComplete }) => {
   };
 
   const captureFaceDescriptor = async () => {
-  if (!videoRef.current) return;
+    if (!videoRef.current) return;
 
-  const result = await faceapi
-    .detectSingleFace(videoRef.current, new faceapi.SsdMobilenetv1Options())
-    .withFaceLandmarks()
-    .withFaceDescriptor();
+    const result = await faceapi
+      .detectSingleFace(videoRef.current, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
+      .withFaceLandmarks()
+      .withFaceDescriptor();
 
-  if (
-    result &&
-    result.descriptor &&
-    Array.isArray(Array.from(result.descriptor)) &&
-    Array.from(result.descriptor).length >= 10
-  ) {
-    const currentDescriptor = Array.from(result.descriptor);
-    console.log("📦 Captured descriptor:", currentDescriptor);
-    console.log("Descriptor length:", currentDescriptor.length);
-    console.log("Raw descriptor from face-api.js:", result.descriptor);
-    console.log("Float32 length:", result.descriptor?.length);
-    setDescriptor(currentDescriptor);
-    setStatus("✅ Face captured. Now click 'Save'.");
+    if (
+      result &&
+      result.descriptor &&
+      result.descriptor instanceof Float32Array &&
+      result.descriptor.length >= 10
+    ) {
+      const currentDescriptor = Array.from(result.descriptor);
+      console.log("✅ Descriptor captured:", currentDescriptor.length);
+      setDescriptor(currentDescriptor);
+      setStatus("✅ Face captured. Now click 'Save'.");
 
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setStatus("❌ No authentication token. Please log in.");
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const res = await axios.get(`${API_BASE}/get-face`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      const storedDescriptor = res.data?.descriptor;
-
-      if (!Array.isArray(storedDescriptor) || storedDescriptor.length === 0) {
-        setStatus("❌ You haven't enrolled your face yet. Please click 'Save Face' first.");
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setStatus("❌ No authentication token. Please log in.");
         return;
       }
 
-      const isMatch = compareDescriptors(currentDescriptor, storedDescriptor);
+      setIsLoading(true);
 
-      if (isMatch) {
-        setStatus("✅ Face matched. Now record your voice...");
-        if (onUploadComplete) onUploadComplete();
-      } else {
-        setStatus("❌ Face does not match our records. Try again.");
+      try {
+        const res = await axios.get(`${API_BASE}/get-face`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const storedDescriptor = res.data?.descriptor;
+
+        if (!Array.isArray(storedDescriptor) || storedDescriptor.length === 0) {
+          setStatus("❌ You haven't enrolled your face yet. Please click 'Save Face' first.");
+          return;
+        }
+
+        const isMatch = compareDescriptors(currentDescriptor, storedDescriptor);
+
+        if (isMatch) {
+          setStatus("✅ Face matched. Now record your voice...");
+          onUploadComplete?.();
+        } else {
+          setStatus("❌ Face does not match our records. Try again.");
+        }
+      } catch (err) {
+        console.error("Failed to fetch face data", err.response || err.message || err);
+        setStatus("❌ Error checking stored face data.");
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err) {
-      console.error("Failed to fetch face data", err.response || err.message || err);
-      setStatus("❌ Error checking stored face data.");
-    } finally {
-      setIsLoading(false);
+    } else {
+      setStatus("❌ Face detection failed. Please try again.");
     }
-  } else {
-    setStatus("❌ No face detected. Please try again.");
-  }
-};
+  };
 
   const saveFaceDescriptor = async () => {
     if (!Array.isArray(descriptor) || descriptor.length < 10) {
@@ -157,7 +153,6 @@ const FaceRecognition = ({ onUploadComplete }) => {
     }
 
     const token = localStorage.getItem("token");
-    console.log("Token being sent:", token);
     if (!token) {
       setStatus("❌ No authentication token. Please log in.");
       return;
@@ -166,7 +161,7 @@ const FaceRecognition = ({ onUploadComplete }) => {
     setIsLoading(true);
 
     try {
-      console.log("📤 Attempting to save descriptor:", descriptor);
+      console.log("📤 Saving descriptor:", descriptor);
       await axios.post(
         `${API_BASE}/enroll-face`,
         { descriptor },
@@ -177,8 +172,7 @@ const FaceRecognition = ({ onUploadComplete }) => {
         }
       );
       setStatus("✅ Face descriptor saved to server.");
-
-      if (onUploadComplete) onUploadComplete();
+      onUploadComplete?.();
     } catch (error) {
       console.error("Error uploading face descriptor:", error);
       setStatus("❌ Failed to save face descriptor.");
