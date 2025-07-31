@@ -1,14 +1,13 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import HomePage from './components/HomePage';
-import Login2FA from './components/Login2FA';
-import Register2FA from './components/Register2FA';
-import Dashboard from './components/Dashboard';
-import SettingsPanel from './components/SettingsPanel';
-import ProtectedRoute from './auth/ProtectedRoute';
-import Header from './components/Header';
-import Footer from './components/Footer';
-import { AuthProvider } from './auth/AuthProvider';
+import Login2FA from './components/Login2FA';  // Login Page
+import Register2FA from './components/Register2FA'; // Register Page
+import Dashboard from './components/Dashboard';  // Dashboard after login
+import SettingsPanel from './components/SettingsPanel'; // Profile Settings
+import ProtectedRoute from './auth/ProtectedRoute';  // Protected Route for authenticated users
+import Header from './components/Header';  // Header component
+import Footer from './components/Footer';  // Footer component
+import { AuthProvider } from './auth/AuthProvider';  // AuthProvider for handling token
 
 function App() {
   return (
@@ -16,9 +15,13 @@ function App() {
       <AuthProvider>
         <Header />
         <Routes>
-          <Route path="/" element={<HomePage />} />
+          {/* Define the login route */}
           <Route path="/login" element={<Login2FA />} />
+          
+          {/* Register page route */}
           <Route path="/register" element={<Register2FA />} />
+          
+          {/* Protect Dashboard route, only accessible for logged-in users */}
           <Route
             path="/dashboard"
             element={
@@ -27,6 +30,8 @@ function App() {
               </ProtectedRoute>
             }
           />
+          
+          {/* Profile settings page */}
           <Route
             path="/settings"
             element={
@@ -35,7 +40,9 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="*" element={<Navigate to="/" />} />
+          
+          {/* Redirect any unmatched routes to the login page */}
+          <Route path="*" element={<Navigate to="/login" />} />
         </Routes>
         <Footer />
       </AuthProvider>
