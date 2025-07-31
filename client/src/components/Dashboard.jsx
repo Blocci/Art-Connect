@@ -1,4 +1,3 @@
-// Dashboard.jsx
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useAuth } from "../auth/AuthProvider";
@@ -38,7 +37,7 @@ const Dashboard = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // Remove the deleted artwork from the state
+      // Remove the deleted artwork from the state after backend confirms
       setArtworks(artworks.filter((artwork) => artwork._id !== id));
       setStatus("✅ Artwork deleted successfully!");
     } catch (err) {
