@@ -158,7 +158,6 @@ router.post("/upload-artwork", verifyToken, uploadArtwork.single("image"), async
 // In your userRoutes.js
 router.delete("/delete-artwork/:id", verifyToken, async (req, res) => {
   try {
-    // Log the artwork ID and user ID
     console.log("Attempting to delete artwork with ID:", req.params.id);
     console.log("Logged-in user ID:", req.user.id);
 
@@ -169,7 +168,7 @@ router.delete("/delete-artwork/:id", verifyToken, async (req, res) => {
       return res.status(404).json({ error: "Artwork not found" });
     }
 
-    // Log artwork and user ID comparison
+    // Log user and artwork comparison
     console.log("Artwork's userId:", artwork.userId);
     console.log("Comparing with logged-in userId:", req.user.id);
 
@@ -179,13 +178,13 @@ router.delete("/delete-artwork/:id", verifyToken, async (req, res) => {
       return res.status(403).json({ error: "Unauthorized" });
     }
 
-    // If the user is authorized, delete the artwork
-    await artwork.remove();
+    // Use deleteOne() instead of remove()
+    await Artwork.deleteOne({ _id: req.params.id }); // Deletes the artwork by ID
     console.log("Artwork deleted successfully:", artwork._id);
 
     res.status(200).json({ message: "Artwork deleted successfully" });
   } catch (err) {
-    console.error("Error deleting artwork:", err); // Log the full error
+    console.error("Error deleting artwork:", err);
     res.status(500).json({ error: "Failed to delete artwork" });
   }
 });
