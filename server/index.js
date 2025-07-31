@@ -6,7 +6,6 @@ const cron = require('node-cron');
 const connectDB = require('./db');
 const cleanupUploads = require('./utils/cleanup');
 require('dotenv').config();
-const jwt = require('jsonwebtoken');
 
 const app = express();
 
@@ -47,23 +46,8 @@ app.use(cors({
 // Body parser
 app.use(express.json());
 
-// POST /api/login route
-app.post('/api/login', (req, res) => {
-  const { username, password } = req.body;
-
-  // Simple validation for demo purposes (replace with your own logic)
-  if (username === 'testuser' && password === 'testpassword') {
-    // Create a JWT token
-    const token = jwt.sign({ username }, 'your-secret-key', { expiresIn: '1h' });
-    return res.json({ token });
-  }
-
-  // Invalid credentials
-  return res.status(401).json({ error: 'Invalid credentials' });
-});
-
 // Mount API routes
-app.use('/api', require('./routes/userRoutes')); // ✅ This line assumes you have other routes in userRoutes.js
+app.use('/api', require('./routes/userRoutes')); // ✅ Adjust if your route file name differs
 
 // Scheduled cleanup job
 cron.schedule('0 0 * * *', () => {
