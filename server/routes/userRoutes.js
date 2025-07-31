@@ -35,7 +35,14 @@ const artworkStorage = multer.diskStorage({
 
 const uploadArtwork = multer({
   storage: artworkStorage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // Max 10MB for the artwork image
+  limits: { fileSize: 10 * 1024 * 1024 }, // Max 10MB for artwork image
+  fileFilter: (req, file, cb) => {
+    // Accept only image files
+    if (!file.mimetype.startsWith('image/')) {
+      return cb(new Error('Only image files are allowed'), false);
+    }
+    cb(null, true);
+  }
 });
 
 // --- Register ---
@@ -107,15 +114,21 @@ router.post("/enroll-face", verifyToken, async (req, res) => {
 // --- Artwork Upload ---
 router.post("/upload-artwork", verifyToken, uploadArtwork.single("image"), async (req, res) => {
   try {
+    console.log('File received:', req.file);  // Log file details
     const { title, description } = req.body;
 
+    // Validate input
     if (!title || !description || !req.file) {
+      console.log('Missing title, description, or image');  // Log missing fields
       return res.status(400).json({ error: 'Missing title, description, or image' });
     }
 
     // Save artwork details in the database
     const user = await User.findById(req.user.id);
-    if (!user) return res.status(404).json({ error: "User not found" });
+    if (!user) {
+      console.log('User not found');
+      return res.status(404).json({ error: "User not found" });
+    }
 
     const artwork = new Artwork({
       title,
@@ -125,9 +138,10 @@ router.post("/upload-artwork", verifyToken, uploadArtwork.single("image"), async
     });
 
     await artwork.save();
+    console.log('Artwork uploaded successfully:', artwork);
     res.status(201).json({ message: "Artwork uploaded successfully", artwork });
   } catch (err) {
-    console.error('Error uploading artwork:', err);
+    console.error('Error uploading artwork:', err);  // Log any errors
     res.status(500).json({ error: 'Server error during artwork upload' });
   }
 });
