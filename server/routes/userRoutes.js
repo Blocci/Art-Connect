@@ -132,6 +132,8 @@ router.post("/upload-artwork", verifyToken, uploadArtwork.single("image"), async
       return res.status(400).json({ error: 'Missing title, description, or image' });
     }
 
+    console.log('File saved at:', req.file.path);  // This logs the full file path
+
     // Save artwork details in the database
     const user = await User.findById(req.user.id);
     if (!user) {

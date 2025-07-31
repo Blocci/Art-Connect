@@ -75,6 +75,9 @@ const Dashboard = () => {
             ) : (
               artworks.map((artwork) => (
                 <div key={artwork._id} className="bg-white p-4 rounded-lg shadow-lg">
+
+                  {console.log("Artwork Image Path:", artwork.imageUrl)}  {/* Log the image URL */}
+
                   <img
                     src={`/${artwork.imageUrl}`} // Display the artwork image
                     alt={artwork.title}
