@@ -9,7 +9,7 @@ import { AuthProvider } from './auth/AuthProvider';
 function App() {
   return (
     <Router>
-      <AuthProvider> {/* AuthProvider should be inside Router */}
+      <AuthProvider> {/* Ensure AuthProvider is wrapped in Router */}
         <Routes>
           <Route path="/login" element={<Login2FA />} />
           <Route path="/register" element={<Register2FA />} />
