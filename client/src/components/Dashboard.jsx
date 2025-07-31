@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useAuth } from "../auth/AuthProvider"; // For managing auth context
-import UploadArtwork from "./UploadArtwork"; // Import UploadArtwork component
 
 const API_BASE = process.env.REACT_APP_API_BASE;
 
@@ -29,18 +28,23 @@ const Dashboard = () => {
   }, [token]);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6 text-center">Welcome to ArtConnect</h1>
+    <div className="container">
+      <header className="header">
+        <h1>Welcome to ArtConnect</h1>
+      </header>
 
       {/* Artworks Section */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 mb-8">
+      <div className="grid">
         {artworks.length === 0 ? (
           <p>No artworks uploaded yet.</p>
         ) : (
           artworks.map((artwork) => (
-            <div key={artwork._id} className="bg-white p-4 rounded-lg shadow-lg text-center">
-              <h3 className="text-xl font-semibold">{artwork.title}</h3>
-              <p>By {artwork.userId}</p>
+            <div key={artwork._id} className="card">
+              <img
+                src={`/${artwork.imageUrl}`} // Display the artwork image
+                alt={artwork.title}
+              />
+              <h3>{artwork.title}</h3>
               <p>{artwork.description}</p>
             </div>
           ))
