@@ -8,17 +8,17 @@ import Dashboard from './components/Dashboard';
 import ProfilePage from './components/ProfilePage';
 import AboutPage from './components/AboutPage';
 import ProtectedRoute from './auth/ProtectedRoute';  // Protect routes like Dashboard and Profile
-import Header from './components/Header';  // Import Header component
-import Footer from './components/Footer';  // Import Footer component
+import Header from './components/Header';  // Header with links
+import Footer from './components/Footer';  // Footer component
 import { AuthProvider } from './auth/AuthProvider';
 
 function App() {
   return (
     <Router>
       <AuthProvider>
-        <Header /> {/* This is where the navigation links will be */}
+        <Header />
         <Routes>
-          <Route path="/" element={<HomePage />} /> {/* Home page route */}
+          <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<Login2FA />} />
           <Route path="/register" element={<Register2FA />} />
           <Route
@@ -31,7 +31,7 @@ function App() {
           />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/about" element={<AboutPage />} />
-          <Route path="*" element={<Navigate to="/" />} /> {/* Redirect invalid routes to Home */}
+          <Route path="*" element={<Navigate to="/" />} />
         </Routes>
         <Footer />
       </AuthProvider>
