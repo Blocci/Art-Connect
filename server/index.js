@@ -8,8 +8,6 @@ const cleanupUploads = require('./utils/cleanup');
 const path = require('path');
 require('dotenv').config();
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
 const app = express();
 
 // Debug logs
@@ -68,3 +66,5 @@ app.listen(PORT, () => {
 app.get('/', (req, res) => {
   res.send('ArtConnect backend is running.');
 });
+
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
