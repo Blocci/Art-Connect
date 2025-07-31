@@ -1,50 +1,38 @@
-import { createContext, useContext, useEffect, useState } from 'react';
-import { jwtDecode } from 'jwt-decode';
+import { createContext, useContext, useEffect, useState } from "react";
+import jwtDecode from "jwt-decode";
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [token, setToken] = useState(() => localStorage.getItem('token'));
+  const [token, setToken] = useState(() => localStorage.getItem("token"));
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(false); // Could simulate loading check or refresh token
+    setLoading(false);
   }, []);
 
   useEffect(() => {
     if (!token) return;
 
-    let timeoutId;
-
     try {
-      const decoded = jwtDecode(token);
-      const exp = decoded.exp * 1000; // exp is in seconds, convert to ms
-      const now = Date.now();
-
-      if (now >= exp) {
-        logout();
-      } else {
-        timeoutId = setTimeout(() => {
-          logout();
-        }, exp - now);
-      }
-    } catch (err) {
-      console.error("Invalid token:", err);
+      const { exp } = jwtDecode(token);
+      const timeout = setTimeout(() => logout(), (exp * 1000) - Date.now());
+      return () => clearTimeout(timeout);
+    } catch {
       logout();
     }
-
-    return () => clearTimeout(timeoutId);
   }, [token]);
 
   const login = (newToken) => {
-    localStorage.setItem('token', newToken);
+    localStorage.setItem("token", newToken);
     setToken(newToken);
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
+    localStorage.removeItem("token");
     setToken(null);
-    window.location.href = '/login'; // Optional: auto redirect on logout
+    // Redirect to login after logout using window.location.replace
+    window.location.replace("/login");
   };
 
   return (
