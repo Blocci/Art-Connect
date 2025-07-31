@@ -17,30 +17,29 @@ const Login2FA = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogin = async () => {
-    if (!username || !password) {
-      setStatus("Enter username and password.");
-      return;
-    }
+ const handleLogin = async () => {
+  if (!username || !password) {
+    setStatus("Enter username and password.");
+    return;
+  }
 
-    setLoading(true); // Set loading to true when initiating the login
-    try {
-      const res = await axios.post(`${API_BASE}/login`, {
-        username,
-        password,
-      });
+  setLoading(true); // Set loading to true when initiating the login
+  try {
+    const res = await axios.post(`${API_BASE}/login`, {
+      username,
+      password,
+    });
 
-      const receivedToken = res.data.token;
-
-      login(receivedToken);
-      setStatus("✅ Login successful. Now scan your face...");
-      setStep(2);
-    } catch (err) {
-      setStatus("❌ Login failed: " + (err.response?.data?.error || "Server error"));
-    } finally {
-      setLoading(false); // Reset loading state after API call
-    }
-  };
+    const receivedToken = res.data.token;
+    login(receivedToken);
+    setStatus("✅ Login successful. Now scan your face...");
+    setStep(2);
+  } catch (err) {
+    setStatus("❌ Login failed: " + (err.response?.data?.error || "Server error"));
+  } finally {
+    setLoading(false); // Reset loading state after API call
+  }
+};
 
   const handleVoiceUpload = () => {
     setStatus("✅ Voice verified. Redirecting...");
