@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../auth/AuthProvider';
-import UploadArtwork from './UploadArtwork';  // Import UploadArtwork component
 
 const API_BASE = process.env.REACT_APP_API_BASE;
 
@@ -48,15 +47,15 @@ const Dashboard = () => {
     <div className="p-6 max-w-7xl mx-auto">
       <h1 className="text-3xl font-bold mb-6 text-center">Your Dashboard</h1>
 
-      {/* Status message for success or error */}
+      {/* Display status messages */}
       {status && (
         <p className={`text-sm ${status.includes("❌") ? "text-red-500" : "text-green-600"}`}>
           {status}
         </p>
       )}
 
-      {/* Upload Artwork Form */}
-      <UploadArtwork /> {/* Add this component to allow users to upload artworks */}
+      {/* Upload Artwork Form (optional if you want it inside Dashboard) */}
+      {/* <UploadArtwork /> */}
 
       {/* Display uploaded artworks */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">

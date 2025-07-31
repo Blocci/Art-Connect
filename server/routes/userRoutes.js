@@ -19,8 +19,8 @@ if (!fs.existsSync(uploadDir)) {
 
 // Multer setup for voice uploads
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, "uploads/"),
-  filename: (req, file, cb) => cb(null, `voice-${Date.now()}${path.extname(file.originalname)}`)
+  destination: (req, file, cb) => cb(null, "uploads/artworks/"),
+  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
 });
 const upload = multer({
   storage,
