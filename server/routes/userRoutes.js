@@ -175,6 +175,17 @@ router.delete("/delete-artwork/:id", verifyToken, async (req, res) => {
   }
 });
 
+router.get("/artworks", verifyToken, async (req, res) => {
+  try {
+    // Fetch artworks associated with the logged-in user
+    const artworks = await Artwork.find({ userId: req.user.id }); 
+    res.status(200).json({ artworks });
+  } catch (err) {
+    console.error('Error fetching artworks:', err);
+    res.status(500).json({ error: 'Failed to fetch artworks' });
+  }
+});
+
 router.get('/get-face', verifyToken, async (req, res) => {
   try {
     console.log("🔍 /get-face hit");
