@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom"; // ✅ import Link
 import axios from "axios";
 import FaceRecognition from "./FaceRecognition";
 import VoiceRecorder from "./VoiceRecorder";
@@ -12,42 +12,39 @@ const Login2FA = () => {
   const [status, setStatus] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false); // Track loading state
+  const [loading, setLoading] = useState(false); // Added loading state
 
   const { login } = useAuth();
   const navigate = useNavigate();
 
- const handleLogin = async () => {
-  if (!username || !password) {
-    setStatus("Enter username and password.");
-    return;
-  }
+  const handleLogin = async () => {
+    if (!username || !password) {
+      setStatus("Enter username and password.");
+      return;
+    }
 
-  setLoading(true); // Set loading to true when initiating the login
-  try {
-    const res = await axios.post(`${API_BASE}/login`, {
-      username,
-      password,
-    });
+    setLoading(true); // Set loading to true when initiating the login
+    try {
+      const res = await axios.post(`${API_BASE}/login`, {
+        username,
+        password,
+      });
 
-    const receivedToken = res.data.token;
-    login(receivedToken);
-    setStatus("✅ Login successful. Now scan your face...");
-    setStep(2);
-  } catch (err) {
-    setStatus("❌ Login failed: " + (err.response?.data?.error || "Server error"));
-  } finally {
-    setLoading(false); // Reset loading state after API call
-  }
-};
+      const receivedToken = res.data.token;
 
-  const handleVoiceUpload = () => {
-    setStatus("✅ Voice verified. Redirecting...");
-    setStep(4);
-
-    setTimeout(() => {
-      navigate("/dashboard");
-    }, 1000);
+      login(receivedToken);
+      setStatus("✅ Login successful. Now scan your face...");
+      setStep(2);
+    } catch (err) {
+      setStatus("❌ Login failed: " + (err.response?.data?.error || "Server error"));
+      
+      // Hard reload to reset the page and state after login failure
+      setTimeout(() => {
+        window.location.reload(); // Reload the page
+      }, 1500); // Add a small delay before reloading (optional)
+    } finally {
+      setLoading(false); // Reset loading state after API call
+    }
   };
 
   return (
@@ -116,7 +113,14 @@ const Login2FA = () => {
       {step === 3 && (
         <VoiceRecorder
           mode="verify"
-          onUploadComplete={handleVoiceUpload}
+          onUploadComplete={() => {
+            setStatus("✅ Voice verified. Redirecting...");
+            setStep(4);
+
+            setTimeout(() => {
+              navigate("/dashboard");
+            }, 1000);
+          }}
         />
       )}
 

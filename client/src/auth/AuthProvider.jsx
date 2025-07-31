@@ -32,7 +32,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("token");
     setToken(null);
     // Redirect to login after logout using window.location.replace
-    window.location.replace("/login");
+    window.location.reload();
   };
 
   return (
