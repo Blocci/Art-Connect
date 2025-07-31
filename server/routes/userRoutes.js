@@ -123,36 +123,32 @@ router.post("/enroll-face", verifyToken, async (req, res) => {
 // --- Artwork Upload ---
 router.post("/upload-artwork", verifyToken, uploadArtwork.single("image"), async (req, res) => {
   try {
-    console.log('File received:', req.file);  // Log file details
     const { title, description } = req.body;
 
-    // Validate input
     if (!title || !description || !req.file) {
-      console.log('Missing title, description, or image');  // Log missing fields
       return res.status(400).json({ error: 'Missing title, description, or image' });
     }
 
-    console.log('File saved at:', req.file.path);  // This logs the full file path
+    // Log the file path for debugging
+    console.log('File received:', req.file);
 
-    // Save artwork details in the database
     const user = await User.findById(req.user.id);
-    if (!user) {
-      console.log('User not found');
-      return res.status(404).json({ error: "User not found" });
-    }
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    // Create the relative path for the image (excluding 'uploads' directory)
+    const imageUrl = req.file.path.replace('uploads/', '');  // Strip out 'uploads/' for the relative path
 
     const artwork = new Artwork({
       title,
       description,
-      imageUrl: req.file.path,  // Save the path of the uploaded image
+      imageUrl, // Save the relative path in the database
       userId: user._id,        // Link artwork to the user
     });
 
     await artwork.save();
-    console.log('Artwork uploaded successfully:', artwork);
     res.status(201).json({ message: "Artwork uploaded successfully", artwork });
   } catch (err) {
-    console.error('Error uploading artwork:', err);  // Log any errors
+    console.error('Error uploading artwork:', err);
     res.status(500).json({ error: 'Server error during artwork upload' });
   }
 });

@@ -38,7 +38,7 @@ const Dashboard = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // Remove the deleted artwork from the state
+      // Remove the deleted artwork from the state after backend confirms
       setArtworks(artworks.filter((artwork) => artwork._id !== id));
       setStatus("✅ Artwork deleted successfully!");
     } catch (err) {
@@ -75,9 +75,6 @@ const Dashboard = () => {
             ) : (
               artworks.map((artwork) => (
                 <div key={artwork._id} className="bg-white p-4 rounded-lg shadow-lg">
-
-                  {console.log("Artwork Image Path:", artwork.imageUrl)}  {/* Log the image URL */}
-
                   <img
                     src={`/${artwork.imageUrl}`} // Display the artwork image
                     alt={artwork.title}
@@ -85,7 +82,7 @@ const Dashboard = () => {
                   />
                   <h3 className="text-xl font-semibold">{artwork.title}</h3>
                   <p>{artwork.description}</p>
-                  {/* Show delete button */}
+                  {/* Delete button always visible */}
                   <button
                     onClick={() => handleDelete(artwork._id)} // Delete button
                     className={`mt-2 ${deleting === artwork._id ? 'bg-gray-400' : 'bg-red-600'} text-white px-4 py-2 rounded`}
