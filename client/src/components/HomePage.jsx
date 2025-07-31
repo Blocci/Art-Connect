@@ -12,7 +12,7 @@ const HomePage = () => {
           <h2 className="text-xl font-semibold">Artwork Title</h2>
           <p>By Artist Name</p>
         </div>
-        {/* More featured artworks... */}
+        {/* More featured artworks */}
       </div>
     </div>
   );

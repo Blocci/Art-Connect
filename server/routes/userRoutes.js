@@ -7,6 +7,7 @@ const path = require("path");
 const fs = require("fs");
 
 const User = require('../models/User');
+const Artwork = require('../models/Artwork');  // Artwork model for saving uploaded art
 const verifyToken = require("../middleware/verifyToken");
 const { getVoiceDescriptorFromFile, cosineSimilarity } = require("../utils/voiceDescriptor");
 
@@ -26,6 +27,16 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // Max 10MB
 });
 
+// Multer setup for artwork uploads
+const artworkStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, "uploads/artworks/"),
+  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`)
+});
+
+const uploadArtwork = multer({
+  storage: artworkStorage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // Max 10MB for the artwork image
+});
 
 // --- Register ---
 router.post('/register', async (req, res) => {
@@ -49,7 +60,6 @@ router.post('/register', async (req, res) => {
   }
 });
 
-
 // --- Login ---
 router.post('/login', async (req, res) => {
   try {
@@ -65,7 +75,6 @@ router.post('/login', async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
-
 
 // --- Face Enrollment ---
 router.post("/enroll-face", verifyToken, async (req, res) => {
@@ -92,6 +101,34 @@ router.post("/enroll-face", verifyToken, async (req, res) => {
   } catch (err) {
     console.error("🔥 Error during face enrollment:", err);
     res.status(500).json({ error: "Server error during face enrollment" });
+  }
+});
+
+// --- Artwork Upload ---
+router.post("/upload-artwork", verifyToken, uploadArtwork.single("image"), async (req, res) => {
+  try {
+    const { title, description } = req.body;
+
+    if (!title || !description || !req.file) {
+      return res.status(400).json({ error: 'Missing title, description, or image' });
+    }
+
+    // Save artwork details in the database
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const artwork = new Artwork({
+      title,
+      description,
+      imageUrl: req.file.path,  // Save the path of the uploaded image
+      userId: user._id,        // Link artwork to the user
+    });
+
+    await artwork.save();
+    res.status(201).json({ message: "Artwork uploaded successfully", artwork });
+  } catch (err) {
+    console.error('Error uploading artwork:', err);
+    res.status(500).json({ error: 'Server error during artwork upload' });
   }
 });
 
