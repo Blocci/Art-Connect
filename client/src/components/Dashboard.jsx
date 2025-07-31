@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useAuth } from "../auth/AuthProvider";
-import UploadArtwork from "./UploadArtwork"; // Import the UploadArtwork component
+import UploadArtwork from "./UploadArtwork"; // Import UploadArtwork component
 
 const API_BASE = process.env.REACT_APP_API_BASE;
 
@@ -10,6 +10,7 @@ const Dashboard = () => {
   const { token } = useAuth();
   const [artworks, setArtworks] = useState([]);
   const [status, setStatus] = useState(""); // Status message for delete/upload
+  const [deleting, setDeleting] = useState(null); // Track which artwork is being deleted
 
   // Fetch artworks when the component mounts
   useEffect(() => {
@@ -30,17 +31,21 @@ const Dashboard = () => {
 
   // Handle deleting an artwork
   const handleDelete = async (id) => {
+    setDeleting(id); // Set the currently deleting artwork ID
+
     try {
       await axios.delete(`${API_BASE}/delete-artwork/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // Remove deleted artwork from the state
+      // Remove the deleted artwork from the state
       setArtworks(artworks.filter((artwork) => artwork._id !== id));
       setStatus("✅ Artwork deleted successfully!");
     } catch (err) {
       console.error("Error deleting artwork:", err);
       setStatus("❌ Failed to delete artwork.");
+    } finally {
+      setDeleting(null); // Reset deleting state after operation
     }
   };
 
@@ -77,11 +82,13 @@ const Dashboard = () => {
                   />
                   <h3 className="text-xl font-semibold">{artwork.title}</h3>
                   <p>{artwork.description}</p>
+                  {/* Show delete button only if artwork is not being deleted */}
                   <button
                     onClick={() => handleDelete(artwork._id)} // Delete button
                     className="mt-2 bg-red-600 text-white px-4 py-2 rounded"
+                    disabled={deleting === artwork._id} // Disable button when deleting this artwork
                   >
-                    Delete Artwork
+                    {deleting === artwork._id ? "Deleting..." : "Delete Artwork"}
                   </button>
                 </div>
               ))
