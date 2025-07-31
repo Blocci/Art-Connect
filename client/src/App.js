@@ -8,8 +8,8 @@ import { AuthProvider } from './auth/AuthProvider';
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
+    <Router>
+      <AuthProvider> {/* AuthProvider should be inside Router */}
         <Routes>
           <Route path="/login" element={<Login2FA />} />
           <Route path="/register" element={<Register2FA />} />
@@ -31,8 +31,8 @@ function App() {
           />
           <Route path="*" element={<Navigate to="/login" />} />
         </Routes>
-      </Router>
-    </AuthProvider>
+      </AuthProvider>
+    </Router>
   );
 }
 

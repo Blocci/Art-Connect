@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";  // Import useNavigate
 
@@ -13,6 +13,12 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
+  const logout = useCallback(() => {
+    localStorage.removeItem("token");
+    setToken(null);
+    navigate("/login"); // Use navigate to redirect to login
+  }, [navigate]); // Memoize the logout function and include navigate as a dependency
+
   useEffect(() => {
     if (!token) return;
 
@@ -23,17 +29,11 @@ export const AuthProvider = ({ children }) => {
     } catch {
       logout();
     }
-  }, [token]);
+  }, [token, logout]);  // Add logout as a dependency
 
   const login = (newToken) => {
     localStorage.setItem("token", newToken);
     setToken(newToken);
-  };
-
-  const logout = () => {
-    localStorage.removeItem("token");
-    setToken(null);
-    navigate("/login"); // Use navigate to redirect to login
   };
 
   return (

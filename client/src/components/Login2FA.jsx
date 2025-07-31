@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom"; // ✅ import Link
+import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import FaceRecognition from "./FaceRecognition";
 import VoiceRecorder from "./VoiceRecorder";
@@ -12,6 +12,7 @@ const Login2FA = () => {
   const [status, setStatus] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false); // Track loading state
 
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -22,6 +23,7 @@ const Login2FA = () => {
       return;
     }
 
+    setLoading(true); // Set loading to true when initiating the login
     try {
       const res = await axios.post(`${API_BASE}/login`, {
         username,
@@ -35,6 +37,8 @@ const Login2FA = () => {
       setStep(2);
     } catch (err) {
       setStatus("❌ Login failed: " + (err.response?.data?.error || "Server error"));
+    } finally {
+      setLoading(false); // Reset loading state after API call
     }
   };
 
@@ -64,6 +68,12 @@ const Login2FA = () => {
         {status}
       </p>
 
+      {loading && (
+        <div className="flex justify-center items-center mb-4">
+          <div className="w-6 h-6 border-t-2 border-blue-500 border-solid rounded-full animate-spin" />
+        </div>
+      )}
+
       {step === 1 && (
         <div className="space-y-2">
           <input
@@ -86,7 +96,6 @@ const Login2FA = () => {
             Login
           </button>
 
-          {/* ✅ Register link below the login form */}
           <p className="text-sm mt-4">
             Don’t have an account?{" "}
             <Link to="/register" className="text-blue-600 underline">
