@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useAuth } from "../auth/AuthProvider";
-import UploadArtwork from "./UploadArtwork"; // Import UploadArtwork component
+import UploadArtwork from "./UploadArtwork"; // Import the UploadArtwork component
 
 const API_BASE = process.env.REACT_APP_API_BASE;
 
