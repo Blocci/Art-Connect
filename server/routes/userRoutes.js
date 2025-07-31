@@ -132,6 +132,26 @@ router.post("/upload-artwork", verifyToken, uploadArtwork.single("image"), async
   }
 });
 
+// In your userRoutes.js
+router.delete("/delete-artwork/:id", verifyToken, async (req, res) => {
+  try {
+    const artwork = await Artwork.findById(req.params.id);
+    if (!artwork) {
+      return res.status(404).json({ error: "Artwork not found" });
+    }
+
+    if (artwork.userId.toString() !== req.user.id) {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
+
+    await artwork.remove();
+    res.status(200).json({ message: "Artwork deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting artwork:", err);
+    res.status(500).json({ error: "Failed to delete artwork" });
+  }
+});
+
 router.get('/get-face', verifyToken, async (req, res) => {
   try {
     console.log("🔍 /get-face hit");

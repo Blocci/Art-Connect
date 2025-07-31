@@ -1,34 +1,66 @@
-// Dashboard.jsx (Updated with better spacing)
-import React from 'react';
+// Dashboard.jsx (Updated with delete button)
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { useAuth } from "../auth/AuthProvider";
+
+const API_BASE = process.env.REACT_APP_API_BASE;
 
 const Dashboard = () => {
+  const { token } = useAuth();
+  const [artworks, setArtworks] = useState([]);
+
+  const handleDelete = async (id) => {
+    try {
+      await axios.delete(`${API_BASE}/delete-artwork/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setArtworks(artworks.filter((artwork) => artwork._id !== id)); // Remove deleted artwork from state
+    } catch (err) {
+      console.error("Error deleting artwork:", err);
+    }
+  };
+
+  useEffect(() => {
+    const fetchArtworks = async () => {
+      try {
+        const res = await axios.get(`${API_BASE}/artworks`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setArtworks(res.data.artworks);
+      } catch (err) {
+        console.error("Error fetching artworks:", err);
+      }
+    };
+
+    fetchArtworks();
+  }, [token]);
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6 text-center">Your Dashboard</h1>
-      
-      {/* Grid Layout for User's Artwork and Settings */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-        {/* User's Artwork */}
-        <div className="bg-white p-6 rounded-lg shadow-lg flex flex-col justify-between">
-          <h2 className="text-xl font-semibold mb-4">Your Artwork</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="bg-gray-200 p-4 rounded-md">
+      <h1 className="text-3xl font-bold mb-6">Your Dashboard</h1>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+        {artworks.length === 0 ? (
+          <p>No artworks uploaded yet.</p>
+        ) : (
+          artworks.map((artwork) => (
+            <div key={artwork._id} className="bg-white p-4 rounded-lg shadow-lg">
               <img
-                src="path_to_artwork_image"
-                alt="Uploaded Artwork"
+                src={`/${artwork.imageUrl}`}
+                alt={artwork.title}
                 className="w-full h-40 object-cover mb-4 rounded-lg"
               />
-              <p className="text-center">Artwork Title</p>
+              <h3 className="text-xl font-semibold">{artwork.title}</h3>
+              <p>{artwork.description}</p>
+              <button
+                onClick={() => handleDelete(artwork._id)}
+                className="mt-2 bg-red-600 text-white px-4 py-2 rounded"
+              >
+                Delete Artwork
+              </button>
             </div>
-            {/* Add more artworks as needed */}
-          </div>
-        </div>
-
-        {/* User's Profile Settings */}
-        <div className="bg-white p-6 rounded-lg shadow-lg flex flex-col justify-between">
-          <h2 className="text-xl font-semibold mb-4">Profile Settings</h2>
-          <button className="mt-4 bg-blue-600 text-white px-4 py-2 rounded">Edit Profile</button>
-        </div>
+          ))
+        )}
       </div>
     </div>
   );
