@@ -5,6 +5,7 @@ const rateLimit = require('express-rate-limit');
 const cron = require('node-cron');
 const connectDB = require('./db');
 const cleanupUploads = require('./utils/cleanup');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
