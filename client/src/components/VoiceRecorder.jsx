@@ -9,9 +9,9 @@ const VOICE_MATCH_THRESHOLD = 0.75;
 const VoiceRecorder = ({ token, mode = "verify", onUploadComplete }) => {
   const [blob, setBlob] = useState(null);
   const [statusMsg, setStatusMsg] = useState("");
+  const [uploading, setUploading] = useState(false);
   const [descriptorReady, setDescriptorReady] = useState(false);
   const [descriptor, setDescriptor] = useState(null);
-  const [uploading, setUploading] = useState(false);
 
   const descriptorEndpoint = `${VOICE_SERVICE_URL}/extract-voice-descriptor`;
 
@@ -31,19 +31,13 @@ const VoiceRecorder = ({ token, mode = "verify", onUploadComplete }) => {
 
   const extractDescriptor = async (audioBlob) => {
     try {
-      const jwt = localStorage.getItem("token");
-      if (!jwt) {
-        setStatusMsg("❌ No authentication token. Please log in.");
-        return;
-      }
-
       const formData = new FormData();
       formData.append("audio", audioBlob, "voice.webm");
 
       const res = await fetch(descriptorEndpoint, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${jwt}`,
+          Authorization: `Bearer ${token}`,
         },
         body: formData,
       });
@@ -74,14 +68,15 @@ const VoiceRecorder = ({ token, mode = "verify", onUploadComplete }) => {
   };
 
   const uploadVoice = async () => {
-    const jwt = localStorage.getItem("token");
-    if (!jwt) {
-      setStatusMsg("❌ No authentication token. Please log in.");
+    if (!descriptorReady || !Array.isArray(descriptor) || descriptor.length < 10 || uploading) {
+      setStatusMsg("❌ Voice descriptor not ready. Record again.");
       return;
     }
 
-    if (!descriptorReady || !Array.isArray(descriptor) || descriptor.length < 10 || uploading) {
-      setStatusMsg("❌ Voice descriptor not ready. Record again.");
+    const authToken = token || localStorage.getItem("token"); // ✅ fallback if prop is missing
+
+    if (!authToken) {
+      setStatusMsg("❌ No authentication token. Please log in.");
       return;
     }
 
@@ -94,13 +89,14 @@ const VoiceRecorder = ({ token, mode = "verify", onUploadComplete }) => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${jwt}`,
+            Authorization: `Bearer ${authToken}`,
           },
           body: JSON.stringify({ descriptor }),
         });
 
         if (!saveRes.ok) {
           const msg = await saveRes.text();
+          console.error("❌ Failed to save descriptor:", msg);
           setStatusMsg("❌ Failed to save descriptor: " + msg);
           return;
         }
@@ -111,7 +107,7 @@ const VoiceRecorder = ({ token, mode = "verify", onUploadComplete }) => {
         const storedRes = await fetch(`${API_BASE}/get-voice`, {
           method: "GET",
           headers: {
-            Authorization: `Bearer ${jwt}`,
+            Authorization: `Bearer ${authToken}`,
           },
         });
 
