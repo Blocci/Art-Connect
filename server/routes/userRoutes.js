@@ -172,6 +172,36 @@ router.post("/verify-voice", verifyToken, upload.single("audio"), async (req, re
   }
 });
 
+router.get('/get-voice', verifyToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user || !user.voiceDescriptor || user.voiceDescriptor.length < 10) {
+      return res.status(404).json({ error: "Voice descriptor not found" });
+    }
+
+    res.status(200).json({ descriptor: user.voiceDescriptor });
+  } catch (err) {
+    console.error("❌ Error in /get-voice:", err);
+    res.status(500).json({ error: "Server error retrieving voice descriptor" });
+  }
+});
+
+router.post("/save-voice-descriptor", verifyToken, async (req, res) => {
+  const { descriptor } = req.body;
+
+  if (!Array.isArray(descriptor) || descriptor.length < 10) {
+    return res.status(400).json({ message: "Invalid voice descriptor" });
+  }
+
+  const user = await User.findById(req.user.id);
+  if (!user) return res.status(404).json({ message: "User not found" });
+
+  user.voiceDescriptor = descriptor;
+  await user.save();
+
+  res.status(200).json({ message: "✅ Voice descriptor saved." });
+});
+
 // --- Misc Routes ---
 router.get("/ping", (req, res) => {
   res.send("pong");
