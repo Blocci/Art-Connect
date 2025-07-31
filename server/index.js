@@ -65,3 +65,5 @@ app.listen(PORT, () => {
 app.get('/', (req, res) => {
   res.send('ArtConnect backend is running.');
 });
+
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
