@@ -1,7 +1,8 @@
-// Dashboard.jsx (Ensure the delete button is part of each artwork display)
+// Dashboard.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../auth/AuthProvider';
+import UploadArtwork from './UploadArtwork';  // Make sure this is imported
 
 const API_BASE = process.env.REACT_APP_API_BASE;
 
@@ -26,21 +27,14 @@ const Dashboard = () => {
     fetchArtworks();
   }, [token]);
 
-  const handleDelete = async (id) => {
-    try {
-      await axios.delete(`${API_BASE}/delete-artwork/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      setArtworks(artworks.filter((artwork) => artwork._id !== id)); // Remove deleted artwork from state
-    } catch (err) {
-      console.error('Error deleting artwork:', err);
-    }
-  };
-
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">Your Dashboard</h1>
+
+      {/* Add Upload Artwork Form */}
+      <UploadArtwork /> {/* Ensure this is added to render the form */}
+
+      {/* Display uploaded artworks */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
         {artworks.length === 0 ? (
           <p>No artworks uploaded yet.</p>
@@ -54,12 +48,6 @@ const Dashboard = () => {
               />
               <h3 className="text-xl font-semibold">{artwork.title}</h3>
               <p>{artwork.description}</p>
-              <button
-                onClick={() => handleDelete(artwork._id)}
-                className="mt-2 bg-red-600 text-white px-4 py-2 rounded"
-              >
-                Delete Artwork
-              </button>
             </div>
           ))
         )}
