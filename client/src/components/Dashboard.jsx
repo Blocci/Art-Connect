@@ -2,11 +2,12 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useAuth } from "../auth/AuthProvider"; // For managing auth context
+import UploadArtwork from "./UploadArtwork"; // Import UploadArtwork component
 
 const API_BASE = process.env.REACT_APP_API_BASE;
 
 const Dashboard = () => {
-  const { token, logout } = useAuth();  // Get token and logout function from AuthContext
+  const { token, logout } = useAuth(); // Get token and logout function from AuthContext
   const [artworks, setArtworks] = useState([]); // State to store artworks
   const [status, setStatus] = useState(""); // Status message for delete/upload
 
@@ -37,7 +38,7 @@ const Dashboard = () => {
           <p>No artworks uploaded yet.</p>
         ) : (
           artworks.map((artwork) => (
-            <div key={artwork._id} className="bg-white p-4 rounded-lg shadow-lg">
+            <div key={artwork._id} className="bg-white p-4 rounded-lg shadow-lg text-center">
               <h3 className="text-xl font-semibold">{artwork.title}</h3>
               <p>By {artwork.userId}</p>
               <p>{artwork.description}</p>
