@@ -49,6 +49,11 @@ const Register2FA = () => {
     }, 1000);
   };
 
+  // Function to navigate to login page
+  const goToLogin = () => {
+    navigate("/login");
+  };
+
   return (
     <div className="p-6 max-w-md mx-auto bg-white rounded shadow">
       <h2 className="text-xl font-bold mb-4">Register with Face + Voice</h2>
@@ -112,6 +117,16 @@ const Register2FA = () => {
           ✅ Registration complete!
         </div>
       )}
+
+      {/* Login button */}
+      <div className="mt-4 text-center">
+        <button
+          onClick={goToLogin}
+          className="bg-gray-600 text-white px-4 py-2 rounded"
+        >
+          Already have an account? Login here
+        </button>
+      </div>
     </div>
   );
 };
