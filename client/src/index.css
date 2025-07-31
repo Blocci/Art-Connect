@@ -7,9 +7,9 @@ body {
 }
 
 .container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
+  max-width: 1200px;  /* Set a max width */
+  margin: 0 auto;     /* Center the container horizontally */
+  padding: 20px;      /* Add padding around the container */
 }
 
 .header {
@@ -31,8 +31,9 @@ body {
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));  /* Adjust grid layout to prevent squishing */
   gap: 20px;
+  justify-items: center;   /* Ensure grid items are centered */
 }
 
 .card {
