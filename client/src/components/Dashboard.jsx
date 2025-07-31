@@ -10,7 +10,7 @@ const Dashboard = () => {
   const { token } = useAuth();
   const [artworks, setArtworks] = useState([]);
   const [status, setStatus] = useState(""); // Status message for delete/upload
-  const [deleting, setDeleting] = useState(null); // Track which artwork is being deleted
+  const [deletingId, setDeletingId] = useState(null); // Track which artwork is being deleted
 
   // Fetch artworks when the component mounts
   useEffect(() => {
@@ -31,21 +31,21 @@ const Dashboard = () => {
 
   // Handle deleting an artwork
   const handleDelete = async (id) => {
-    setDeleting(id); // Set the currently deleting artwork ID
+    setDeletingId(id); // Set the ID of the artwork being deleted
 
     try {
       await axios.delete(`${API_BASE}/delete-artwork/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // Remove the deleted artwork from the state after backend confirms
+      // Remove the deleted artwork from the state immediately (optimistic UI)
       setArtworks(artworks.filter((artwork) => artwork._id !== id));
       setStatus("✅ Artwork deleted successfully!");
     } catch (err) {
       console.error("Error deleting artwork:", err);
       setStatus("❌ Failed to delete artwork.");
     } finally {
-      setDeleting(null); // Reset deleting state after operation
+      setDeletingId(null); // Reset deletingId after operation
     }
   };
 
@@ -82,13 +82,18 @@ const Dashboard = () => {
                   />
                   <h3 className="text-xl font-semibold">{artwork.title}</h3>
                   <p>{artwork.description}</p>
+
                   {/* Delete button always visible */}
                   <button
                     onClick={() => handleDelete(artwork._id)} // Delete button
-                    className={`mt-2 ${deleting === artwork._id ? 'bg-gray-400' : 'bg-red-600'} text-white px-4 py-2 rounded`}
-                    disabled={deleting === artwork._id} // Disable button when deleting this artwork
+                    className="mt-2 bg-red-600 text-white px-4 py-2 rounded"
+                    disabled={deletingId === artwork._id} // Disable only the button for the artwork being deleted
                   >
-                    {deleting === artwork._id ? "Deleting..." : "Delete Artwork"}
+                    {deletingId === artwork._id ? (
+                      <span className="animate-spin">🌀</span> // Show loading spinner
+                    ) : (
+                      "Delete Artwork"
+                    )}
                   </button>
                 </div>
               ))
