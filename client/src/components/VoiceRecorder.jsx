@@ -31,13 +31,19 @@ const VoiceRecorder = ({ token, mode = "verify", onUploadComplete }) => {
 
   const extractDescriptor = async (audioBlob) => {
     try {
+      const jwt = localStorage.getItem("token");
+      if (!jwt) {
+        setStatusMsg("❌ No authentication token. Please log in.");
+        return;
+      }
+
       const formData = new FormData();
       formData.append("audio", audioBlob, "voice.webm");
 
       const res = await fetch(descriptorEndpoint, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${jwt}`,
         },
         body: formData,
       });
@@ -53,10 +59,8 @@ const VoiceRecorder = ({ token, mode = "verify", onUploadComplete }) => {
       }
 
       setDescriptor(data.descriptor);
-      setTimeout(() => {
-        setDescriptorReady(true);
-        setStatusMsg("✅ Voice ready. Click Upload.");
-      }, 500); // buffer for async/slow network
+      setDescriptorReady(true);
+      setStatusMsg("✅ Voice ready. Click Upload.");
     } catch (err) {
       console.error("❌ Voice descriptor fetch error:", err);
       setStatusMsg("❌ Network error. Try again.");
@@ -70,13 +74,14 @@ const VoiceRecorder = ({ token, mode = "verify", onUploadComplete }) => {
   };
 
   const uploadVoice = async () => {
-    if (!descriptorReady || !Array.isArray(descriptor) || descriptor.length < 10 || uploading) {
-      setStatusMsg("❌ Voice descriptor not ready. Record again.");
+    const jwt = localStorage.getItem("token");
+    if (!jwt) {
+      setStatusMsg("❌ No authentication token. Please log in.");
       return;
     }
 
-    if (!token) {
-      setStatusMsg("❌ No authentication token. Please log in.");
+    if (!descriptorReady || !Array.isArray(descriptor) || descriptor.length < 10 || uploading) {
+      setStatusMsg("❌ Voice descriptor not ready. Record again.");
       return;
     }
 
@@ -89,15 +94,10 @@ const VoiceRecorder = ({ token, mode = "verify", onUploadComplete }) => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${jwt}`,
           },
           body: JSON.stringify({ descriptor }),
         });
-
-        if (saveRes.status === 401) {
-          setStatusMsg("❌ Unauthorized. Your session may have expired.");
-          return;
-        }
 
         if (!saveRes.ok) {
           const msg = await saveRes.text();
@@ -111,14 +111,9 @@ const VoiceRecorder = ({ token, mode = "verify", onUploadComplete }) => {
         const storedRes = await fetch(`${API_BASE}/get-voice`, {
           method: "GET",
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${jwt}`,
           },
         });
-
-        if (storedRes.status === 401) {
-          setStatusMsg("❌ Unauthorized. Please log in again.");
-          return;
-        }
 
         const storedData = await storedRes.json();
         const storedDescriptor = storedData?.descriptor;
