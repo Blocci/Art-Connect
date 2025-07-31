@@ -1,16 +1,23 @@
+// App.js
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import HomePage from './components/HomePage';
 import Login2FA from './components/Login2FA';
 import Register2FA from './components/Register2FA';
 import Dashboard from './components/Dashboard';
 import SettingsPanel from './components/SettingsPanel';
 import ProtectedRoute from './auth/ProtectedRoute';
+import Header from './components/Header';
+import Footer from './components/Footer';
 import { AuthProvider } from './auth/AuthProvider';
 
 function App() {
   return (
     <Router>
-      <AuthProvider> {/* Ensure AuthProvider is wrapped in Router */}
+      <AuthProvider>
+        <Header />
         <Routes>
+          <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<Login2FA />} />
           <Route path="/register" element={<Register2FA />} />
           <Route
@@ -29,8 +36,9 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="*" element={<Navigate to="/login" />} />
+          <Route path="*" element={<Navigate to="/" />} />
         </Routes>
+        <Footer />
       </AuthProvider>
     </Router>
   );

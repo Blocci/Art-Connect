@@ -1,61 +1,31 @@
-import React, { useState } from "react";
-import FaceRecognition from "./FaceRecognition";
-import VoiceRecorder from "./VoiceRecorder";
+// SettingsPanel.jsx
+import React, { useState } from 'react';
 
 const SettingsPanel = () => {
-  const [step, setStep] = useState(1);
-  const [status, setStatus] = useState("");
+  const [username, setUsername] = useState("");  // Add more states for other editable fields
+
+  const handleSave = () => {
+    // Handle save logic here (e.g., make an API call to update the user's profile)
+  };
 
   return (
-    <div className="p-6 max-w-xl mx-auto bg-white rounded shadow">
-      <h2 className="text-2xl font-bold mb-4">🔧 Settings</h2>
-      <p className="text-sm mb-4 text-gray-600">
-        Re-enroll your face or voice for better recognition.
-      </p>
-
-      {step === 1 && (
-        <div className="flex gap-4">
-          <button
-            className="bg-blue-600 text-white px-4 py-2 rounded"
-            onClick={() => setStep(2)}
-          >
-            Re-enroll Face
-          </button>
-          <button
-            className="bg-green-600 text-white px-4 py-2 rounded"
-            onClick={() => setStep(3)}
-          >
-            Re-enroll Voice
-          </button>
-        </div>
-      )}
-
-      {step === 2 && (
-        <div className="mt-4">
-          <FaceRecognition
-            onUploadComplete={() => {
-              setStatus("✅ Face re-enrolled.");
-              setStep(1);
-            }}
-          />
-        </div>
-      )}
-
-      {step === 3 && (
-        <div className="mt-4">
-          <VoiceRecorder
-            mode="register"
-            onUploadComplete={() => {
-              setStatus("✅ Voice re-enrolled.");
-              setStep(1);
-            }}
-          />
-        </div>
-      )}
-
-      {status && (
-        <p className="mt-4 text-sm text-green-600 font-semibold">{status}</p>
-      )}
+    <div className="p-6 max-w-7xl mx-auto">
+      <h1 className="text-3xl font-bold mb-6">Profile Settings</h1>
+      <div className="bg-white p-6 rounded-lg shadow-lg">
+        <label className="block mb-2 text-lg font-semibold">Username</label>
+        <input 
+          type="text" 
+          value={username} 
+          onChange={(e) => setUsername(e.target.value)} 
+          className="border p-2 w-full rounded-lg mb-4"
+        />
+        <button 
+          onClick={handleSave} 
+          className="bg-blue-600 text-white px-4 py-2 rounded"
+        >
+          Save Changes
+        </button>
+      </div>
     </div>
   );
 };
