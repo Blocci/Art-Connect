@@ -1,13 +1,16 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Login2FA from './components/Login2FA';  // Login Page
-import Register2FA from './components/Register2FA'; // Register Page
-import Dashboard from './components/Dashboard';  // Dashboard after login
-import SettingsPanel from './components/SettingsPanel'; // Profile Settings
-import ProtectedRoute from './auth/ProtectedRoute';  // Protected Route for authenticated users
-import Header from './components/Header';  // Header component
-import Footer from './components/Footer';  // Footer component
-import { AuthProvider } from './auth/AuthProvider';  // AuthProvider for handling token
+import HomePage from './components/HomePage';
+import Login2FA from './components/Login2FA';
+import Register2FA from './components/Register2FA';
+import Dashboard from './components/Dashboard';
+import ProfilePage from './components/ProfilePage';
+import ArtworkDetailPage from './components/ArtworkDetailPage';
+import AboutPage from './components/AboutPage';
+import ProtectedRoute from './auth/ProtectedRoute';  // Protect routes like Dashboard and Profile
+import Header from './components/Header';  // Import Header component
+import Footer from './components/Footer';  // Import Footer component
+import { AuthProvider } from './auth/AuthProvider';
 
 function App() {
   return (
@@ -15,13 +18,9 @@ function App() {
       <AuthProvider>
         <Header />
         <Routes>
-          {/* Define the login route */}
+          <Route path="/" element={<HomePage />} /> {/* Home page route */}
           <Route path="/login" element={<Login2FA />} />
-          
-          {/* Register page route */}
           <Route path="/register" element={<Register2FA />} />
-          
-          {/* Protect Dashboard route, only accessible for logged-in users */}
           <Route
             path="/dashboard"
             element={
@@ -30,19 +29,10 @@ function App() {
               </ProtectedRoute>
             }
           />
-          
-          {/* Profile settings page */}
-          <Route
-            path="/settings"
-            element={
-              <ProtectedRoute>
-                <SettingsPanel />
-              </ProtectedRoute>
-            }
-          />
-          
-          {/* Redirect any unmatched routes to the login page */}
-          <Route path="*" element={<Navigate to="/login" />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/artwork/:id" element={<ArtworkDetailPage />} /> {/* Artwork detail page route */}
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="*" element={<Navigate to="/" />} /> {/* Redirect invalid routes to Home */}
         </Routes>
         <Footer />
       </AuthProvider>

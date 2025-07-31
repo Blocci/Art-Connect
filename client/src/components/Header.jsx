@@ -1,37 +1,22 @@
-// HomePage.jsx (Responsive layout for artworks)
-import React from 'react';
+// Header.jsx
+import React from "react";
+import { Link } from "react-router-dom";
 
-const HomePage = () => {
+const Header = () => {
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <h1 className="text-4xl font-bold text-center mb-8">Welcome to ArtConnect</h1>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-        {/* Featured Artwork */}
-        <div className="bg-white p-4 rounded-lg shadow-lg">
-          <img
-            src="path_to_artwork_image"
-            alt="Artwork"
-            className="w-full h-60 object-cover mb-4 rounded-lg"
-          />
-          <h2 className="text-xl font-semibold">Artwork Title</h2>
-          <p>By Artist Name</p>
-        </div>
-
-        {/* Additional Featured Artworks */}
-        <div className="bg-white p-4 rounded-lg shadow-lg">
-          <img
-            src="path_to_artwork_image"
-            alt="Artwork"
-            className="w-full h-60 object-cover mb-4 rounded-lg"
-          />
-          <h2 className="text-xl font-semibold">Artwork Title</h2>
-          <p>By Artist Name</p>
-        </div>
-
-        {/* Add more artworks here */}
+    <header className="bg-gray-900 text-white p-4">
+      <div className="max-w-7xl mx-auto flex justify-between items-center">
+        <h1 className="text-3xl font-semibold">ArtConnect</h1>
+        <nav>
+          <Link to="/" className="text-white mx-4">Home</Link>
+          <Link to="/dashboard" className="text-white mx-4">Dashboard</Link>
+          <Link to="/profile" className="text-white mx-4">Profile</Link>
+          <Link to="/about" className="text-white mx-4">About</Link>
+          <Link to="/login" className="text-white mx-4">Login</Link>
+        </nav>
       </div>
-    </div>
+    </header>
   );
 };
 
-export default HomePage;
+export default Header;
