@@ -27,9 +27,6 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // Max 10MB
 });
 
-const fs = require('fs');
-const path = require('path');
-
 // Ensure 'uploads/artworks' folder exists, or create it
 const artworkFolderPath = path.join(__dirname, '..', 'uploads', 'artworks');
 if (!fs.existsSync(artworkFolderPath)) {
