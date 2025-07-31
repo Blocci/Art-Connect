@@ -31,14 +31,14 @@ const Dashboard = () => {
 
   // Handle deleting an artwork
   const handleDelete = async (id) => {
-    setDeletingId(id); // Set the ID of the artwork being deleted
+    setDeletingId(id); // Set the currently deleting artwork ID
 
     try {
       await axios.delete(`${API_BASE}/delete-artwork/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // Remove the deleted artwork from the state immediately (optimistic UI)
+      // Remove the deleted artwork from the state
       setArtworks(artworks.filter((artwork) => artwork._id !== id));
       setStatus("✅ Artwork deleted successfully!");
     } catch (err) {
@@ -63,12 +63,12 @@ const Dashboard = () => {
       {/* Flexbox layout for two sections: form and artwork gallery */}
       <div className="flex gap-8">
         {/* Left side: Upload Artwork Form */}
-        <div className="w-1/3">
+        <div className="w-1/2">
           <UploadArtwork /> {/* Render the upload form here */}
         </div>
 
         {/* Right side: Display Artworks */}
-        <div className="w-2/3">
+        <div className="w-1/2">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
             {artworks.length === 0 ? (
               <p>No artworks uploaded yet.</p>
@@ -86,8 +86,8 @@ const Dashboard = () => {
                   {/* Delete button always visible */}
                   <button
                     onClick={() => handleDelete(artwork._id)} // Delete button
-                    className="mt-2 bg-red-600 text-white px-4 py-2 rounded"
-                    disabled={deletingId === artwork._id} // Disable only the button for the artwork being deleted
+                    className={`mt-2 ${deletingId === artwork._id ? 'bg-gray-400' : 'bg-red-600'} text-white px-4 py-2 rounded`}
+                    disabled={deletingId === artwork._id} // Disable button when deleting this artwork
                   >
                     {deletingId === artwork._id ? (
                       <span className="animate-spin">🌀</span> // Show loading spinner
