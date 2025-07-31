@@ -1,13 +1,30 @@
-// Dashboard.jsx (Updated with delete button)
-import React, { useState, useEffect } from "react";
-import axios from "axios";
-import { useAuth } from "../auth/AuthProvider";
+// Dashboard.jsx (Ensure the delete button is part of each artwork display)
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { useAuth } from '../auth/AuthProvider';
 
 const API_BASE = process.env.REACT_APP_API_BASE;
 
 const Dashboard = () => {
   const { token } = useAuth();
   const [artworks, setArtworks] = useState([]);
+
+  useEffect(() => {
+    const fetchArtworks = async () => {
+      try {
+        const res = await axios.get(`${API_BASE}/artworks`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setArtworks(res.data.artworks); // Assuming the API returns an array of artworks
+      } catch (err) {
+        console.error('Error fetching artworks:', err);
+      }
+    };
+
+    fetchArtworks();
+  }, [token]);
 
   const handleDelete = async (id) => {
     try {
@@ -17,24 +34,9 @@ const Dashboard = () => {
 
       setArtworks(artworks.filter((artwork) => artwork._id !== id)); // Remove deleted artwork from state
     } catch (err) {
-      console.error("Error deleting artwork:", err);
+      console.error('Error deleting artwork:', err);
     }
   };
-
-  useEffect(() => {
-    const fetchArtworks = async () => {
-      try {
-        const res = await axios.get(`${API_BASE}/artworks`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setArtworks(res.data.artworks);
-      } catch (err) {
-        console.error("Error fetching artworks:", err);
-      }
-    };
-
-    fetchArtworks();
-  }, [token]);
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
