@@ -124,12 +124,13 @@ router.get('/get-face', verifyToken, async (req, res) => {
 });
 
 // --- Voice Enrollment ---
-router.post("/enroll-voice", verifyToken, upload.single("audio"), async (req, res) => {
+router.post("/enroll-voice", verifyToken, async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ message: "No voice file uploaded" });
+    const { descriptor } = req.body;
 
-    const descriptor = await getVoiceDescriptorFromFile(req.file.path);
-    fs.unlinkSync(req.file.path);
+    if (!Array.isArray(descriptor) || descriptor.length < 10) {
+      return res.status(400).json({ message: "Invalid voice descriptor" });
+    }
 
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: "User not found" });
