@@ -3,7 +3,7 @@ import * as faceapi from "face-api.js";
 import axios from "axios";
 import Spinner from "./Spinner";
 
-const API_BASE = process.env.REACT_APP_API_BASE;
+const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:3001/api";
 const FACE_MATCH_THRESHOLD = 0.5;
 
 const FaceRecognition = ({ onUploadComplete }) => {
@@ -37,7 +37,7 @@ const FaceRecognition = ({ onUploadComplete }) => {
         })
         .catch((err) => {
           console.error("Webcam error:", err);
-          setStatus("❌ Error accessing webcam.");
+          setStatus("Error accessing webcam.");
         });
     };
 
@@ -99,7 +99,7 @@ const FaceRecognition = ({ onUploadComplete }) => {
       video.videoWidth === 0 ||
       video.videoHeight === 0
     ) {
-      setStatus("⏳ Waiting for camera...");
+      setStatus("Waiting for camera...");
       setTimeout(captureFaceDescriptor, 500);
       return;
     }
@@ -118,35 +118,35 @@ const FaceRecognition = ({ onUploadComplete }) => {
       const currentDescriptor = Array.from(result.descriptor);
       setDescriptor(currentDescriptor);
       setDescriptorReady(false);
-      setStatus("✅ Face captured. Validating...");
+      setStatus("Face captured. Validating...");
 
-      // ⏳ Add delay before confirming readiness
+      // Add delay before confirming readiness
       setTimeout(() => {
         const isValid = Array.isArray(currentDescriptor) && currentDescriptor.length === 128;
         setDescriptorReady(isValid);
-        setStatus(isValid ? "✅ Face ready. Click Save." : "❌ Detection unstable. Try again.");
+        setStatus(isValid ? "Face ready. Click Save." : "Detection unstable. Try again.");
       }, 500);
     } else {
-      setStatus("❌ Face detection failed. Please try again.");
+      setStatus("Face detection failed. Please try again.");
     }
   };
 
   const saveFaceDescriptor = async () => {
     if (!Array.isArray(descriptor) || descriptor.length !== 128) {
-      setStatus("❌ No valid face descriptor. Please click Capture first.");
+      setStatus("No valid face descriptor. Please click Capture first.");
       return;
     }
 
     const token = localStorage.getItem("token");
     if (!token) {
-      setStatus("❌ No authentication token. Please log in.");
+      setStatus("No authentication token. Please log in.");
       return;
     }
 
     setIsLoading(true);
 
     try {
-      console.log("📤 Saving descriptor:", descriptor);
+      console.log("Saving descriptor:", descriptor);
       await axios.post(
         `${API_BASE}/enroll-face`,
         { descriptor },
@@ -156,11 +156,11 @@ const FaceRecognition = ({ onUploadComplete }) => {
           },
         }
       );
-      setStatus("✅ Face descriptor saved to server.");
+      setStatus("Face descriptor saved to server.");
       onUploadComplete?.();
     } catch (error) {
       console.error("Error uploading face descriptor:", error);
-      setStatus("❌ Failed to save face descriptor.");
+      setStatus("Failed to save face descriptor.");
     } finally {
       setIsLoading(false);
     }
@@ -169,8 +169,9 @@ const FaceRecognition = ({ onUploadComplete }) => {
   if (isLoading) return <Spinner text="Processing face..." />;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-      <div style={{ position: "relative", width: "640px", height: "480px" }}>
+  <div className="face-recognition">
+    <div className="face-recognition-inner">
+      <div style={{ position: "relative", width: "640px", height: "480px", margin: "0 auto" }}>
         <video
           ref={videoRef}
           autoPlay
@@ -187,7 +188,7 @@ const FaceRecognition = ({ onUploadComplete }) => {
         />
       </div>
 
-      <div style={{ marginTop: "1rem", textAlign: "center" }}>
+      <div style={{ marginTop: "1rem" }}>
         <p className="text-sm text-gray-700">{status}</p>
         <div style={{ display: "flex", gap: "1rem", justifyContent: "center", marginTop: "0.5rem" }}>
           <button
@@ -207,7 +208,8 @@ const FaceRecognition = ({ onUploadComplete }) => {
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 };
 
 export default FaceRecognition;

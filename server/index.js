@@ -6,6 +6,7 @@ const cron = require('node-cron');
 const connectDB = require('./db');
 const cleanupUploads = require('./utils/cleanup');
 const path = require('path');
+const userRoutes = require("./routes/userRoutes");
 require('dotenv').config();
 
 const app = express();
@@ -22,7 +23,7 @@ app.use(helmet());
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 15 * 60 * 1000,
   max: 100,
 });
 app.use(limiter);
@@ -33,7 +34,7 @@ app.use(cors({
     const allowedOrigins = [
       'http://localhost:3000',
       'https://localhost:3000',
-      'https://artconnect-frontend.onrender.com'
+      'http://localhost:3001'
     ];
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
@@ -47,24 +48,25 @@ app.use(cors({
 // Body parser
 app.use(express.json());
 
-// Mount API routes
-app.use('/api', require('./routes/userRoutes')); // ✅ Adjust if your route file name differs
+//Serve static files — MUST be above app.listen
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Scheduled cleanup job
+//Mount routes once
+app.use("/api", userRoutes);
+
+// Scheduled cleanup
 cron.schedule('0 0 * * *', () => {
-  console.log('🧹 Running scheduled uploads cleanup...');
+  console.log('Running scheduled uploads cleanup...');
   cleanupUploads();
 });
 
-// ✅ Use Render-compatible HTTP port
-const PORT = process.env.PORT || 3001;
-
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
-
+// Home test route
 app.get('/', (req, res) => {
   res.send('ArtConnect backend is running.');
 });
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+//Start the server LAST
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});

@@ -35,7 +35,7 @@ async function getVoiceDescriptorFromFile(filePath) {
     return response.data.descriptor;
   } catch (err) {
     fs.unlinkSync(convertedPath);
-    console.error("❌ Failed to extract voice descriptor:", err.response?.data || err.message);
+    console.error("Failed to extract voice descriptor:", err.response?.data || err.message);
     throw new Error("Voice descriptor extraction failed");
   }
 }

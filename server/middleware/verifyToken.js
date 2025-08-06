@@ -10,10 +10,16 @@ module.exports = function (req, res, next) {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = { id: decoded.id || decoded._id }; // ✅ covers both formats
+
+    if (!decoded || (!decoded.id && !decoded._id)) {
+      throw new Error("Decoded token missing 'id'");
+    }
+
+    req.user = { id: decoded.id || decoded._id }; //Set the user on the request object
+    console.log("req.user set by middleware:", req.user);
     next();
   } catch (err) {
-    console.error("Invalid token:", err);
+    console.error("Token verification failed:", err.message);
     res.status(401).json({ message: 'Invalid token' });
   }
 };

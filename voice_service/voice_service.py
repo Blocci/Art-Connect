@@ -28,7 +28,7 @@ async def extract_voice_descriptor(audio: UploadFile = File(...)):
             temp_input.write(contents)
             input_path = temp_input.name
 
-        # 🔄 Convert to .wav using ffmpeg
+        # Convert to .wav using ffmpeg
         output_path = input_path.replace(".webm", ".wav")
         try:
             subprocess.run(
@@ -38,18 +38,18 @@ async def extract_voice_descriptor(audio: UploadFile = File(...)):
                 stderr=subprocess.DEVNULL,
             )
         except subprocess.CalledProcessError as e:
-            print("❌ ffmpeg failed:", e)
+            print("ffmpeg failed:", e)
             raise HTTPException(status_code=400, detail="Audio conversion failed.")
 
-        # ✅ Read the .wav file
+        # Read the .wav file
         try:
             wav, sr = sf.read(output_path)
         except Exception as e:
-            print("❌ Error reading converted audio file:", e)
+            print("Error reading converted audio file:", e)
             raise HTTPException(status_code=400, detail="Invalid converted audio file.")
 
         if sr != 16000:
-            print(f"❌ Sample rate incorrect: {sr}")
+            print(f"Sample rate incorrect: {sr}")
             raise HTTPException(status_code=400, detail="Audio must be 16kHz.")
 
         preprocessed = preprocess_wav(wav, source_sr=sr)
@@ -59,9 +59,9 @@ async def extract_voice_descriptor(audio: UploadFile = File(...)):
         os.remove(input_path)
         os.remove(output_path)
 
-        print("✅ Descriptor length:", len(embedding))
+        print("Descriptor length:", len(embedding))
         return { "descriptor": embedding.tolist() }
 
     except Exception as e:
-        print("🔥 Server error:", str(e))
+        print("Server error:", str(e))
         raise HTTPException(status_code=500, detail="Internal server error.")

@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import { ReactMediaRecorder } from "react-media-recorder";
 import Spinner from "./Spinner";
 
-const VOICE_SERVICE_URL = "https://artconnect-voiceservice.onrender.com";
-const API_BASE = process.env.REACT_APP_API_BASE;
+const VOICE_SERVICE_URL = "http://localhost:8000";
+const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:3001/api";
 const VOICE_MATCH_THRESHOLD = 0.75;
 
 const VoiceRecorder = ({ token, mode = "verify", onUploadComplete }) => {
@@ -18,11 +18,11 @@ const VoiceRecorder = ({ token, mode = "verify", onUploadComplete }) => {
   const handleStop = (recordedBlob) => {
     if (recordedBlob?.blob && recordedBlob.blob.size > 0) {
       setBlob(recordedBlob.blob);
-      setStatusMsg("✅ Recording captured. Validating...");
+      setStatusMsg("Recording captured. Validating...");
       setDescriptorReady(false);
       extractDescriptor(recordedBlob.blob);
     } else {
-      setStatusMsg("❌ Recording failed or empty. Please try again.");
+      setStatusMsg("Recording failed or empty. Please try again.");
       setBlob(null);
       setDescriptor(null);
       setDescriptorReady(false);
@@ -45,8 +45,8 @@ const VoiceRecorder = ({ token, mode = "verify", onUploadComplete }) => {
       const data = await res.json();
 
       if (!res.ok || !data?.descriptor || data.descriptor.length < 10) {
-        console.error("❌ Voice descriptor extraction failed:", data);
-        setStatusMsg("❌ Descriptor extraction failed. Try recording again.");
+        console.error("Voice descriptor extraction failed:", data);
+        setStatusMsg("Descriptor extraction failed. Try recording again.");
         setDescriptor(null);
         setDescriptorReady(false);
         return;
@@ -54,10 +54,10 @@ const VoiceRecorder = ({ token, mode = "verify", onUploadComplete }) => {
 
       setDescriptor(data.descriptor);
       setDescriptorReady(true);
-      setStatusMsg("✅ Voice ready. Click Upload.");
+      setStatusMsg("Voice ready. Click Upload.");
     } catch (err) {
-      console.error("❌ Voice descriptor fetch error:", err);
-      setStatusMsg("❌ Network error. Try again.");
+      console.error("Voice descriptor fetch error:", err);
+      setStatusMsg("Network error. Try again.");
       setDescriptorReady(false);
     }
   };
@@ -69,19 +69,19 @@ const VoiceRecorder = ({ token, mode = "verify", onUploadComplete }) => {
 
   const uploadVoice = async () => {
     if (!descriptorReady || !Array.isArray(descriptor) || descriptor.length < 10 || uploading) {
-      setStatusMsg("❌ Voice descriptor not ready. Record again.");
+      setStatusMsg("Voice descriptor not ready. Record again.");
       return;
     }
 
-    const authToken = token || localStorage.getItem("token"); // ✅ fallback if prop is missing
+    const authToken = token || localStorage.getItem("token"); //fallback if prop is missing
 
     if (!authToken) {
-      setStatusMsg("❌ No authentication token. Please log in.");
+      setStatusMsg("No authentication token. Please log in.");
       return;
     }
 
     setUploading(true);
-    setStatusMsg("📤 Uploading voice...");
+    setStatusMsg("Uploading voice...");
 
     try {
       if (mode === "register") {
@@ -96,12 +96,12 @@ const VoiceRecorder = ({ token, mode = "verify", onUploadComplete }) => {
 
         if (!saveRes.ok) {
           const msg = await saveRes.text();
-          console.error("❌ Failed to save descriptor:", msg);
-          setStatusMsg("❌ Failed to save descriptor: " + msg);
+          console.error("Failed to save descriptor:", msg);
+          setStatusMsg("Failed to save descriptor: " + msg);
           return;
         }
 
-        setStatusMsg("✅ Voice registered.");
+        setStatusMsg("Voice registered.");
         onUploadComplete?.();
       } else {
         const storedRes = await fetch(`${API_BASE}/get-voice`, {
@@ -115,30 +115,31 @@ const VoiceRecorder = ({ token, mode = "verify", onUploadComplete }) => {
         const storedDescriptor = storedData?.descriptor;
 
         if (!storedDescriptor) {
-          setStatusMsg("❌ No enrolled voice found.");
+          setStatusMsg("No enrolled voice found.");
           return;
         }
 
         const distance = euclideanDistance(descriptor, storedDescriptor);
 
         if (distance < VOICE_MATCH_THRESHOLD) {
-          setStatusMsg("✅ Voice matched. Access granted.");
+          setStatusMsg("Voice matched. Access granted.");
           onUploadComplete?.();
         } else {
-          setStatusMsg("❌ Voice did not match. Try again.");
+          setStatusMsg("Voice did not match. Try again.");
         }
       }
     } catch (err) {
-      console.error("❌ Voice upload error:", err);
-      setStatusMsg("❌ Upload failed.");
+      console.error("Voice upload error:", err);
+      setStatusMsg("Upload failed.");
     } finally {
       setUploading(false);
     }
   };
 
   return (
-    <div className="p-4 border rounded shadow-md w-fit bg-white">
-      <h2 className="text-lg font-bold mb-2">Voice Recorder</h2>
+  <div className="voice-recorder">
+    <div className="voice-recorder-inner">
+      <h2>Voice Recorder</h2>
 
       {uploading ? (
         <Spinner text="Processing voice..." />
@@ -147,20 +148,22 @@ const VoiceRecorder = ({ token, mode = "verify", onUploadComplete }) => {
           audio
           onStop={(blobUrl, blob) => handleStop({ blob, blobUrl })}
           render={({ status, startRecording, stopRecording }) => (
-            <div>
-              <p className="text-sm mb-2">Recording Status: {status}</p>
-              <button
-                onClick={startRecording}
-                className="px-4 py-2 bg-blue-500 text-white rounded mr-2"
-              >
-                Start Recording
-              </button>
-              <button
-                onClick={stopRecording}
-                className="px-4 py-2 bg-red-500 text-white rounded"
-              >
-                Stop Recording
-              </button>
+            <>
+              <p className="text-sm">Recording Status: {status}</p>
+              <div style={{ marginTop: "0.5rem" }}>
+                <button
+                  onClick={startRecording}
+                  className="px-4 py-2 bg-blue-500 text-white rounded mr-2"
+                >
+                  Start Recording
+                </button>
+                <button
+                  onClick={stopRecording}
+                  className="px-4 py-2 bg-red-500 text-white rounded"
+                >
+                  Stop Recording
+                </button>
+              </div>
 
               {blob && (
                 <div className="mt-4 space-y-2">
@@ -178,12 +181,13 @@ const VoiceRecorder = ({ token, mode = "verify", onUploadComplete }) => {
               {statusMsg && (
                 <p className="mt-2 text-sm text-gray-700">{statusMsg}</p>
               )}
-            </div>
+            </>
           )}
         />
       )}
     </div>
-  );
+  </div>
+);
 };
 
 export default VoiceRecorder;

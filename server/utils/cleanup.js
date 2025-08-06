@@ -15,11 +15,11 @@ const cleanupUploads = async () => {
 
       if (now - stat.mtimeMs > ONE_DAY_MS) {
         await fs.unlink(filePath);
-        console.log(`🗑️ Deleted old file: ${file}`);
+        console.log(`Deleted old file: ${file}`);
       }
     }
   } catch (err) {
-    console.error('❌ Error during cleanup:', err.message);
+    console.error('Error during cleanup:', err.message);
   }
 };
 

@@ -19,53 +19,59 @@ if (!fs.existsSync(uploadDir)) {
 
 // Multer setup for voice uploads
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, "uploads/artworks/"),
-  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
+  destination: (req, file, cb) => {
+    cb(null, path.join(__dirname, '..', '..', 'client', 'public', 'static', 'artworks'));
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  }
 });
 const upload = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024 }, // Max 10MB
 });
 
-// Ensure 'uploads/artworks' folder exists, or create it
-const artworkFolderPath = path.join(__dirname, '..', 'uploads', 'artworks');
+// Ensure 'client/public/static/artworks' folder exists, or create it
+const artworkFolderPath = path.join(__dirname, '..', '..', 'client', 'public', 'static', 'artworks');
 if (!fs.existsSync(artworkFolderPath)) {
   fs.mkdirSync(artworkFolderPath, { recursive: true });
-  console.log("Uploads/artworks folder created.");
+  console.log("Static artwork folder created at:", artworkFolderPath);
 } else {
-  console.log("Uploads/artworks folder already exists.");
+  console.log("Static artwork folder already exists.");
 }
 
-// Multer setup for artwork uploads
+// Multer setup for saving into /client/public/static/artworks/
 const artworkStorage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, "uploads/artworks/"),
-  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`)
+  destination: (req, file, cb) => {
+    cb(null, artworkFolderPath);
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  }
 });
 
 const uploadArtwork = multer({
   storage: artworkStorage,
   limits: { fileSize: 10 * 1024 * 1024 }, // Max 10MB for artwork image
   fileFilter: (req, file, cb) => {
-    // Accept only image files
     if (!file.mimetype.startsWith('image/')) {
       return cb(new Error('Only image files are allowed'), false);
     }
     cb(null, true);
   }
 });
-
 // --- Register ---
 router.post('/register', async (req, res) => {
   try {
-    const { username, password } = req.body;
-    if (!username || !password)
-      return res.status(400).json({ error: 'Missing username or password' });
+    const { email, username, password } = req.body;
+    if (!email || !username || !password)
+      return res.status(400).json({ error: 'Missing username, email, or password' });
 
     if (await User.findOne({ username }))
       return res.status(400).json({ error: 'User already exists' });
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({ username, password: hashedPassword });
+    const user = new User({ email, username, password: hashedPassword });
     await user.save();
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
@@ -97,25 +103,25 @@ router.post("/enroll-face", verifyToken, async (req, res) => {
   try {
     const { descriptor } = req.body;
 
-    // ✅ Validation: descriptor must be an array with enough values (e.g. 128)
+    // Validation: descriptor must be an array with enough values (e.g. 128)
     if (!Array.isArray(descriptor) || descriptor.length < 10) {
-      console.log("❌ Invalid face descriptor received:", descriptor);
+      console.log("Invalid face descriptor received:", descriptor);
       return res.status(400).json({ error: "Descriptor is missing or invalid" });
     }
 
     const user = await User.findById(req.user.id);
     if (!user) {
-      console.log("❌ User not found");
+      console.log("User not found");
       return res.status(404).json({ error: "User not found" });
     }
 
     user.faceDescriptor = descriptor;
     await user.save();
 
-    console.log(`✅ Face descriptor saved for ${user.username}. Length: ${descriptor.length}`);
+    console.log(`Face descriptor saved for ${user.username}. Length: ${descriptor.length}`);
     res.status(200).json({ message: "Face enrolled successfully" });
   } catch (err) {
-    console.error("🔥 Error during face enrollment:", err);
+    console.error("Error during face enrollment:", err);
     res.status(500).json({ error: "Server error during face enrollment" });
   }
 });
@@ -136,7 +142,9 @@ router.post("/upload-artwork", verifyToken, uploadArtwork.single("image"), async
     if (!user) return res.status(404).json({ error: "User not found" });
 
     // Create the relative path for the image (excluding 'uploads' directory)
-    const imageUrl = req.file.path.replace('uploads/', '');  // Strip out 'uploads/' for the relative path
+    const imageUrl = req.file.filename;
+
+    console.log("Cleaned imageUrl:", imageUrl);  // Strip out 'uploads/' for the relative path
 
     const artwork = new Artwork({
       title,
@@ -156,41 +164,49 @@ router.post("/upload-artwork", verifyToken, uploadArtwork.single("image"), async
 // In your userRoutes.js
 router.delete("/delete-artwork/:id", verifyToken, async (req, res) => {
   try {
-    console.log("Attempting to delete artwork with ID:", req.params.id);
-    console.log("Logged-in user ID:", req.user.id);
-
-    // Find the artwork by ID
     const artwork = await Artwork.findById(req.params.id);
     if (!artwork) {
-      console.log("Artwork not found with ID:", req.params.id);
       return res.status(404).json({ error: "Artwork not found" });
     }
 
-    // Log user and artwork comparison
-    console.log("Artwork's userId:", artwork.userId);
-    console.log("Comparing with logged-in userId:", req.user.id);
-
-    // Check if the logged-in user is the owner of the artwork
     if (artwork.userId.toString() !== req.user.id) {
-      console.log("User is not authorized to delete this artwork");
       return res.status(403).json({ error: "Unauthorized" });
     }
 
-    // Use deleteOne() instead of remove()
-    await Artwork.deleteOne({ _id: req.params.id }); // Deletes the artwork by ID
-    console.log("Artwork deleted successfully:", artwork._id);
+    // Construct full path to image
+    const imagePath = path.join(__dirname, '..', '..', 'client', 'public', 'static', 'artworks', artwork.imageUrl);
 
-    res.status(200).json({ message: "Artwork deleted successfully" });
+    // Delete the artwork document first
+    await Artwork.deleteOne({ _id: artwork._id });
+
+    // Attempt to delete the image file
+    if (fs.existsSync(imagePath)) {
+      fs.unlinkSync(imagePath);
+      console.log("Deleted image file:", imagePath);
+    } else {
+      console.log("Image file not found (already deleted?):", imagePath);
+    }
+
+    res.status(200).json({ message: "Artwork and image deleted successfully" });
   } catch (err) {
     console.error("Error deleting artwork:", err);
     res.status(500).json({ error: "Failed to delete artwork" });
   }
 });
 
+router.get("/artworks/public", async (req, res) => {
+  try {
+    const artworks = await Artwork.find().populate("userId", "username");
+    res.status(200).json({ artworks });
+  } catch (err) {
+    console.error("Error fetching public artworks:", err);
+    res.status(500).json({ error: "Failed to fetch public artworks" });
+  }
+});
+
 router.get("/artworks", verifyToken, async (req, res) => {
   try {
-    // Fetch artworks associated with the logged-in user
-    const artworks = await Artwork.find({ userId: req.user.id }); 
+    const artworks = await Artwork.find({ userId: req.user.id }).populate("userId", "username"); // get all, not just for a user
     res.status(200).json({ artworks });
   } catch (err) {
     console.error('Error fetching artworks:', err);
@@ -200,12 +216,12 @@ router.get("/artworks", verifyToken, async (req, res) => {
 
 router.get('/get-face', verifyToken, async (req, res) => {
   try {
-    console.log("🔍 /get-face hit");
+    console.log("/get-face hit");
     console.log("User from token:", req.user); // make sure this logs something
 
     const user = await User.findById(req.user.id);
     if (!user) {
-      console.log("❌ User not found");
+      console.log("User not found");
       return res.status(404).json({ error: "User not found" });
     }
 
@@ -214,14 +230,14 @@ router.get('/get-face', verifyToken, async (req, res) => {
     console.log("faceDescriptor content:", user.faceDescriptor);
 
     if (!Array.isArray(user.faceDescriptor) || user.faceDescriptor.length === 0) {
-      console.log("❌ Invalid or missing face descriptor");
+      console.log("Invalid or missing face descriptor");
       return res.status(404).json({ error: "Face descriptor not found" });
     }
 
-    console.log("✅ Returning face descriptor");
+    console.log("Returning face descriptor");
     res.status(200).json({ descriptor: user.faceDescriptor });
   } catch (err) {
-    console.error("🔥 Error in /get-face:", err);
+    console.error("Error in /get-face:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -241,9 +257,9 @@ router.post("/enroll-voice", verifyToken, async (req, res) => {
     user.voiceDescriptor = descriptor;
     await user.save();
 
-    res.status(200).json({ message: "✅ Voice enrolled successfully" });
+    res.status(200).json({ message: "Voice enrolled successfully" });
   } catch (err) {
-    console.error("❌ Voice enrollment error:", err);
+    console.error("Voice enrollment error:", err);
     res.status(500).json({ message: "Server error during voice enrollment" });
   }
 });
@@ -271,7 +287,7 @@ router.post("/verify-voice", verifyToken, upload.single("audio"), async (req, re
       message: match ? "Voice verified successfully" : "Voice verification failed"
     });
   } catch (err) {
-    console.error("❌ Voice verification error:", err);
+    console.error("Voice verification error:", err);
     res.status(500).json({ message: "Server error during voice verification" });
   }
 });
@@ -285,7 +301,7 @@ router.get('/get-voice', verifyToken, async (req, res) => {
 
     res.status(200).json({ descriptor: user.voiceDescriptor });
   } catch (err) {
-    console.error("❌ Error in /get-voice:", err);
+    console.error("Error in /get-voice:", err);
     res.status(500).json({ error: "Server error retrieving voice descriptor" });
   }
 });
@@ -303,7 +319,45 @@ router.post("/save-voice-descriptor", verifyToken, async (req, res) => {
   user.voiceDescriptor = descriptor;
   await user.save();
 
-  res.status(200).json({ message: "✅ Voice descriptor saved." });
+  res.status(200).json({ message: "Voice descriptor saved." });
+});
+
+// --- Get current user's profile ---
+router.get("/me", verifyToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.status(200).json(user);
+  } catch (err) {
+    console.error("Error in /me:", err);
+    res.status(500).json({ message: "Server error retrieving user profile" });
+  }
+});
+
+// --- Update Profile ---
+router.put("/me", verifyToken, async (req, res) => {
+  try {
+    const { username, email } = req.body;
+
+    if (!username || !email) {
+      return res.status(400).json({ message: "Missing username or email" });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    user.username = username;
+    user.email = email;
+
+    await user.save();
+
+    res.status(200).json({ message: "Profile updated successfully" });
+  } catch (err) {
+    console.error("Error updating profile:", err);
+    res.status(500).json({ message: "Server error during profile update" });
+  }
 });
 
 // --- Misc Routes ---

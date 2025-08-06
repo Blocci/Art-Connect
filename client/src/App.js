@@ -6,10 +6,13 @@ import Login2FA from './components/Login2FA';
 import Register2FA from './components/Register2FA';
 import Dashboard from './components/Dashboard';
 import ProfilePage from './components/ProfilePage';
+import SettingsPanel from './components/SettingsPanel';
 import AboutPage from './components/AboutPage';
 import ProtectedRoute from './auth/ProtectedRoute';  // Protect routes like Dashboard and Profile
 import Header from './components/Header';  // Header with links
 import Footer from './components/Footer';  // Footer component
+import NotFound from './components/NotFound';
+import UploadArtwork from './components/UploadArtwork';
 import { AuthProvider } from './auth/AuthProvider';
 
 function App() {
@@ -30,8 +33,10 @@ function App() {
             }
           />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/settings" element={<SettingsPanel />} />
           <Route path="/about" element={<AboutPage />} />
-          <Route path="*" element={<Navigate to="/" />} />
+          <Route path="/upload" element={<UploadArtwork />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
         <Footer />
       </AuthProvider>
